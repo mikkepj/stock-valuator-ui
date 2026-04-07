@@ -14,9 +14,9 @@
 - [x] Proxy Vite → BE en `localhost:8080`
 - [x] `src/types/api.ts` — tipos espejo de los DTOs Java
 - [x] `src/api/client.ts` — funciones axios para todos los endpoints
-- [ ] Configurar `react-router-dom` con rutas en `App.tsx`
-- [ ] Limpiar boilerplate de Vite (App.tsx, App.css, index.css)
-- [ ] Layout base con navegación (header con link a Watchlist)
+- [x] Configurar `react-router-dom` con rutas en `App.tsx`
+- [x] Limpiar boilerplate de Vite (App.tsx, App.css, index.css)
+- [x] Layout base con navegación (header con link a Watchlist)
 
 ---
 
@@ -24,14 +24,14 @@
 
 **Ruta:** `/`
 
-- [ ] `WatchlistPage.tsx` — tabla con columnas: Ticker | Empresa | Precio | Valor Intrínseco | Margen | Veredicto | Acciones
-- [ ] Color coding por veredicto: verde `#22c55e` (UNDERVALUED), amarillo `#eab308` (FAIR_VALUE), rojo `#ef4444` (OVERVALUED)
-- [ ] Botón "Agregar ticker" → `AddTickerModal`
-- [ ] `AddTickerModal.tsx` — input de ticker, llama `POST /watchlist/{ticker}`, refresca lista
-- [ ] Botón "Recalcular" por fila → llama `POST /valuations/{ticker}/calculate`, muestra loading
-- [ ] Botón "Ver detalle" por fila → navega a `/ticker/:ticker`
-- [ ] Botón "Eliminar" por fila → llama `DELETE /watchlist/{ticker}`, refresca lista
-- [ ] Estado de carga y error manejado en cada acción
+- [x] `WatchlistPage.tsx` — tabla con columnas: Ticker | Empresa | Precio | Valor Intrínseco | Margen | Veredicto | Acciones
+- [x] Color coding por veredicto: verde `#22c55e` (UNDERVALUED), amarillo `#eab308` (FAIR_VALUE), rojo `#ef4444` (OVERVALUED)
+- [x] Botón "Agregar ticker" → `AddTickerModal`
+- [x] `AddTickerModal.tsx` — input de ticker, llama `POST /watchlist/{ticker}`, refresca lista
+- [x] Botón "Recalcular" por fila → llama `POST /valuations/{ticker}/calculate`, muestra loading
+- [x] Botón "Ver detalle" por fila → navega a `/ticker/:ticker`
+- [x] Botón "Eliminar" por fila → llama `DELETE /watchlist/{ticker}`, refresca lista
+- [x] Estado de carga y error manejado en cada acción
 
 ---
 
@@ -40,47 +40,55 @@
 **Ruta:** `/ticker/:ticker`
 
 ### Header
-- [ ] Nombre, sector, ticker
-- [ ] Precio de mercado vs valor intrínseco (Base)
-- [ ] Badge de veredicto con color
+- [x] Nombre, sector, ticker
+- [x] Precio de mercado vs valor intrínseco (Base)
+- [x] Badge de veredicto con color
 
 ### Panel de Escenarios
-- [ ] Tabla o cards con los 3 escenarios: Base / Optimista / Pesimista
-- [ ] Columnas: Nombre | IV/acción | Margen de seguridad | Veredicto | CAGR inicial | WACC
+- [x] Tabla o cards con los 3 escenarios: Base / Optimista / Pesimista
+- [x] Columnas: Nombre | IV/acción | Margen de seguridad | Veredicto | CAGR inicial | WACC
 
 ### DCF Breakdown
-- [ ] Tabla simple: WACC | Terminal Growth | Terminal Value | Net Debt | Projection Years
-- [ ] `sumPvFcfs` y `terminalValue` del breakdown
+- [x] Tabla simple: WACC | Terminal Growth | Terminal Value | Net Debt | Projection Years
+- [x] `sumPvFcfs` y `terminalValue` del breakdown
 
 ### FCF Estimates (entrada manual)
-- [ ] Formulario para ingresar hasta 5 valores de FCF estimados (de Koyfin)
-- [ ] Llama `POST /companies/{ticker}/fcf-estimates`
-- [ ] Botón "Recalcular con nuevas estimaciones" post-guardado
+- [x] Formulario para ingresar hasta 5 valores de FCF estimados (de Koyfin)
+- [x] Llama `POST /companies/{ticker}/fcf-estimates`
+- [x] Botón "Recalcular con nuevas estimaciones" post-guardado
 
 ### Sensitivity Heatmap
-- [ ] `SensitivityHeatmap.tsx` — tabla 5×5 con gradiente de color
-- [ ] Eje X (columnas): ajuste de WACC (`-1%` → `+1%`)
-- [ ] Eje Y (filas): ajuste de terminal growth (`-2%` → `+2%`)
-- [ ] Celda central resaltada (escenario base)
-- [ ] Gradiente: rojo (valores bajos) → verde (valores altos)
+- [x] `SensitivityHeatmap.tsx` — tabla 5×5 con gradiente de color
+- [x] Eje X (columnas): ajuste de WACC (`-1%` → `+1%`)
+- [x] Eje Y (filas): ajuste de terminal growth (`-2%` → `+2%`)
+- [x] Celda central resaltada (escenario base)
+- [x] Gradiente: rojo (valores bajos) → verde (valores altos)
 
 ---
 
 ## Fase 4.4 — Polish y UX
 
-- [ ] Loading spinner global mientras carga datos
-- [ ] Manejo de error con mensaje amigable (ticker no encontrado, error de red)
-- [ ] Responsive básico (funciona en tablet)
-- [ ] Favicon y título de página dinámico (`MSFT — Stock Valuator`)
+- [x] Loading spinner global mientras carga datos
+- [x] Manejo de error con mensaje amigable (ticker no encontrado, error de red)
+- [x] Responsive básico (funciona en tablet)
+- [x] Favicon y título de página dinámico (`MSFT — Stock Valuator`)
 
 ---
 
 ## Fase 4.5 — Deploy
 
-- [ ] Crear `.env.production` con `VITE_API_URL` apuntando al BE en Railway/Render
-- [ ] Configurar deploy en Vercel (conectar repo, variable de entorno)
-- [ ] Verificar CORS: agregar URL de Vercel a `stockvaluator.cors.allowed-origins` en el BE
+- [x] `vercel.json` con rewrite SPA para que `/ticker/:ticker` no dé 404 al refrescar
+- [x] `.env.production.example` con placeholder de `VITE_API_URL`
+- [ ] Cuando tengas URL del BE: crear `.env.production` (o variable en Vercel dashboard) con `VITE_API_URL=https://...`
+- [ ] Conectar repo a Vercel (import project → framework Vite, build command `npm run build`, output `dist`)
+- [ ] Agregar URL de Vercel a `stockvaluator.cors.allowed-origins` en el BE
 - [ ] Smoke test en producción: valuación MSFT end-to-end
+
+---
+
+## Mejoras pendientes
+
+- [ ] **FCF Estimates pre-cargados:** El BE debe exponer los FCF estimates guardados en BD (campo `fcfEstimates: number[]` en `ValuationResponse` o endpoint `GET /companies/{ticker}/fcf-estimates`). Una vez disponible, pre-rellenar los inputs de `FcfEstimatesForm` con los valores existentes para no tener que reintroducirlos todos al querer cambiar uno solo.
 
 ---
 
@@ -90,13 +98,9 @@
 |---------|-----------|
 | `src/types/api.ts` | Tipos TypeScript espejo de los DTOs Java — mantener sincronizados |
 | `src/api/client.ts` | Todas las llamadas HTTP al BE — no hacer fetch directo en componentes |
+| `src/components/` | `VerdictBadge`, `Spinner`, `ErrorMessage`, `AddTickerModal`, `SensitivityHeatmap`, `FcfEstimatesForm`, `Layout` |
+| `src/hooks/usePageTitle.ts` | Título dinámico de pestaña |
 | `CLAUDE.md` | Contexto del proyecto, contratos API, convenciones |
 | `vite.config.ts` | Proxy dev hacia BE en localhost:8080 |
-
----
-
-## Para retomar mañana
-
-Decirle a Claude: **"Continuemos con la Fase 4, empieza por 4.1 completando el setup base"**
-
-O ir directo a una sección: **"Implementa la WatchlistPage"**
+| `vercel.json` | Rewrite SPA para deploy en Vercel |
+| `.env.production.example` | Plantilla de variable de entorno para producción |
