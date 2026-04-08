@@ -27,5 +27,8 @@ export const removeFromWatchlist = (ticker: string): Promise<void> =>
 
 // --- FCF Estimates ---
 
+export const getFcfEstimates = (ticker: string): Promise<number[]> =>
+  http.get<number[]>(`/companies/${ticker}/fcf-estimates`).then(r => r.data)
+
 export const saveFcfEstimates = (ticker: string, estimates: number[]): Promise<void> =>
   http.post(`/companies/${ticker}/fcf-estimates`, { estimates }).then(() => undefined)

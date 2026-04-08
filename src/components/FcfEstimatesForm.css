@@ -56,3 +56,8 @@
   font-size: 0.82rem;
   color: #22c55e;
 }
+
+.fcf-loading {
+  color: var(--text);
+  font-style: italic;
+}

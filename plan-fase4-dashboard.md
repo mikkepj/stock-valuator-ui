@@ -88,7 +88,7 @@
 
 ## Mejoras pendientes
 
-- [ ] **FCF Estimates pre-cargados:** El BE debe exponer los FCF estimates guardados en BD (campo `fcfEstimates: number[]` en `ValuationResponse` o endpoint `GET /companies/{ticker}/fcf-estimates`). Una vez disponible, pre-rellenar los inputs de `FcfEstimatesForm` con los valores existentes para no tener que reintroducirlos todos al querer cambiar uno solo.
+- [x] **FCF Estimates pre-cargados:** `GET /companies/{ticker}/fcf-estimates` devuelve `number[]`. `FcfEstimatesForm` carga los valores al montar y pre-rellena los inputs. Si no hay estimates en BD los inputs quedan vacíos.
 
 ---
 
