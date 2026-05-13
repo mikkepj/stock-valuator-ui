@@ -31,6 +31,7 @@ export function TickerDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [recalculating, setRecalculating] = useState(false)
+  const [betaOverrideInput, setBetaOverrideInput] = useState('')
 
   usePageTitle(data ? `${data.ticker} — ${data.companyName}` : ticker)
 
@@ -53,7 +54,9 @@ export function TickerDetailPage() {
     if (!ticker) return
     setRecalculating(true)
     try {
-      const val = await calculate(ticker)
+      const parsed = parseFloat(betaOverrideInput)
+      const betaOverride = !isNaN(parsed) && betaOverrideInput.trim() !== '' ? parsed : undefined
+      const val = await calculate(ticker, betaOverride)
       setData(val)
     } catch {
       setError('Error al recalcular. Intentá de nuevo.')
@@ -80,13 +83,26 @@ export function TickerDetailPage() {
       {/* ── Header ── */}
       <div className="detail-topbar">
         <button className="btn-action" onClick={() => navigate('/')}>← Watchlist</button>
-        <button
-          className="btn-primary"
-          disabled={recalculating}
-          onClick={() => void handleRecalculate()}
-        >
-          {recalculating ? 'Recalculando...' : 'Recalcular DCF'}
-        </button>
+        <div className="recalc-controls">
+          <input
+            type="number"
+            className="beta-input"
+            placeholder="Beta override (opcional)"
+            min={0.1}
+            max={5.0}
+            step={0.05}
+            value={betaOverrideInput}
+            onChange={e => setBetaOverrideInput(e.target.value)}
+            disabled={recalculating}
+          />
+          <button
+            className="btn-primary"
+            disabled={recalculating}
+            onClick={() => void handleRecalculate()}
+          >
+            {recalculating ? 'Recalculando...' : 'Recalcular DCF'}
+          </button>
+        </div>
       </div>
 
       <div className="detail-header">
@@ -157,6 +173,12 @@ export function TickerDetailPage() {
             <span className="breakdown-label">WACC</span>
             <span className="breakdown-value">{fmtPct(data.wacc)}</span>
           </div>
+          {data.betaUsed !== null && data.betaUsed !== undefined && (
+            <div className="breakdown-item">
+              <span className="breakdown-label">Beta utilizada</span>
+              <span className="breakdown-value">{fmt(data.betaUsed)}</span>
+            </div>
+          )}
           <div className="breakdown-item">
             <span className="breakdown-label">Terminal Growth</span>
             <span className="breakdown-value">{fmtPct(data.terminalGrowthRate)}</span>
