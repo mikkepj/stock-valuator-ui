@@ -89,6 +89,55 @@
 ## Mejoras pendientes
 
 - [x] **FCF Estimates pre-cargados:** `GET /companies/{ticker}/fcf-estimates` devuelve `number[]`. `FcfEstimatesForm` carga los valores al montar y pre-rellena los inputs. Si no hay estimates en BD los inputs quedan vacíos.
+- [x] **Beta override en recálculo:** input numérico opcional en `TickerDetailPage`; si se ingresa, se envía `{ betaOverride }` en el body del `POST /valuations/{ticker}/calculate`. `betaUsed` se muestra en el DCF Breakdown.
+
+---
+
+## Fase 5 — UI Redesign: Shadcn/ui + Tailwind + Tema oscuro/claro
+
+> **Rama:** `feature/ui-redesign-shadcn`
+> **Objetivo:** Llevar la interfaz al nivel de herramientas modernas (Linear, Vercel). Migrar el CSS artesanal a Tailwind v4 + Shadcn/ui. Sin tocar lógica de negocio, API ni tipos.
+
+### 5.1 — Setup de dependencias
+- [ ] Instalar Tailwind CSS v4 y configurar en `vite.config.ts` / `index.css`
+- [ ] Instalar y configurar Shadcn/ui (`npx shadcn init`)
+- [ ] Configurar alias de paths (`@/`) en `tsconfig.app.json` y `vite.config.ts`
+- [ ] Eliminar todos los archivos `.css` de componentes y páginas (reemplazados por Tailwind)
+
+### 5.2 — Sistema de temas
+- [ ] Definir tokens CSS de Shadcn para tema oscuro y claro en `index.css`
+- [ ] `ThemeProvider` — context con estado `'light' | 'dark'`, persiste en `localStorage`
+- [ ] Toggle dark/light en el header (ícono sol/luna con `lucide-react`)
+- [ ] Detectar preferencia del SO como valor inicial si no hay preferencia guardada
+
+### 5.3 — Layout y navegación
+- [ ] Migrar `Layout.tsx` — header con Tailwind, logo, nav links, toggle de tema
+- [ ] Agregar componente `ThemeToggle` en el header
+
+### 5.4 — WatchlistPage
+- [ ] Reemplazar tabla HTML manual por `DataTable` de Shadcn (con `@tanstack/react-table`)
+- [ ] Cards de resumen en la parte superior: total tickers | undervalued count | avg margen
+- [ ] `VerdictBadge` migrado a Shadcn `Badge` con variantes de color
+- [ ] `AddTickerModal` migrado a Shadcn `Dialog`
+- [ ] Columnas ordenables por margen de seguridad y veredicto
+
+### 5.5 — TickerDetailPage
+- [ ] Header con `Card` de Shadcn: ticker, empresa, sector, precios, badge de veredicto
+- [ ] DCF Breakdown como grid de `Card` con íconos de `lucide-react`
+- [ ] Tabla de escenarios migrada a `DataTable`
+- [ ] Input de beta override integrado con Shadcn `Input` + `Label` + tooltip explicativo (referencia Damodaran)
+- [ ] Sensitivity Heatmap: mantener lógica, reestilizar con Tailwind
+
+### 5.6 — Componentes compartidos
+- [ ] `Spinner` → Shadcn `Skeleton` para loading states
+- [ ] `ErrorMessage` → Shadcn `Alert` con variante destructive
+- [ ] `FcfEstimatesForm` → Shadcn `Input`, `Button`, layout con Tailwind
+
+### 5.7 — Polish final
+- [ ] Transiciones suaves en cambio de tema (`transition-colors duration-200` global)
+- [ ] Responsive revisado: mobile-first con Tailwind breakpoints
+- [ ] Verificar que el build de TypeScript compile sin errores (`tsc --noEmit`)
+- [ ] Smoke test visual en dark y light mode
 
 ---
 
@@ -98,9 +147,12 @@
 |---------|-----------|
 | `src/types/api.ts` | Tipos TypeScript espejo de los DTOs Java — mantener sincronizados |
 | `src/api/client.ts` | Todas las llamadas HTTP al BE — no hacer fetch directo en componentes |
-| `src/components/` | `VerdictBadge`, `Spinner`, `ErrorMessage`, `AddTickerModal`, `SensitivityHeatmap`, `FcfEstimatesForm`, `Layout` |
+| `src/components/` | `VerdictBadge`, `Spinner`, `ErrorMessage`, `AddTickerModal`, `SensitivityHeatmap`, `FcfEstimatesForm`, `Layout`, `ThemeToggle` |
 | `src/hooks/usePageTitle.ts` | Título dinámico de pestaña |
+| `src/hooks/useTheme.ts` | Hook para leer y cambiar el tema activo |
+| `src/lib/utils.ts` | `cn()` helper de Shadcn para combinar clases Tailwind |
 | `CLAUDE.md` | Contexto del proyecto, contratos API, convenciones |
-| `vite.config.ts` | Proxy dev hacia BE en localhost:8080 |
+| `vite.config.ts` | Proxy dev hacia BE en localhost:8080, alias `@/` |
 | `vercel.json` | Rewrite SPA para deploy en Vercel |
 | `.env.production.example` | Plantilla de variable de entorno para producción |
+| `components.json` | Configuración de Shadcn/ui |
