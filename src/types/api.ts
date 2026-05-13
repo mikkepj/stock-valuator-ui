@@ -26,6 +26,7 @@ export interface ValuationResponse {
   projectionYears: number
   terminalValue: number
   netDebt: number
+  betaUsed: number | null
   scenarios: ScenarioResult[]
   sensitivityMatrix: Record<string, Record<string, number>>
   breakdown: Record<string, number>

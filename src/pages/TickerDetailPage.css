@@ -20,6 +20,36 @@
   margin-bottom: 1.5rem;
 }
 
+.recalc-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.beta-input {
+  width: 180px;
+  padding: 0.45rem 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.875rem;
+}
+
+.beta-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.beta-input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.beta-input::placeholder {
+  color: var(--text-secondary, #888);
+}
+
 .detail-header {
   display: flex;
   justify-content: space-between;

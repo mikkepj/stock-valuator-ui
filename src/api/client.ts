@@ -11,8 +11,12 @@ const http = axios.create({
 export const getValuation = (ticker: string): Promise<ValuationResponse> =>
   http.get<ValuationResponse>(`/valuations/${ticker}`).then(r => r.data)
 
-export const calculate = (ticker: string): Promise<ValuationResponse> =>
-  http.post<ValuationResponse>(`/valuations/${ticker}/calculate`).then(r => r.data)
+export const calculate = (ticker: string, betaOverride?: number): Promise<ValuationResponse> => {
+  const body = betaOverride !== undefined ? { betaOverride } : undefined
+  return http.post<ValuationResponse>(`/valuations/${ticker}/calculate`, body, {
+    headers: betaOverride !== undefined ? undefined : { 'Content-Type': undefined },
+  }).then(r => r.data)
+}
 
 // --- Watchlist ---
 
