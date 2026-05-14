@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm src/App.css)",
+      "Bash(npm run:*)",
+      "Bash(npx tsc *)",
+      "Bash(git checkout *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git merge *)",
+      "Bash(git push *)",
+      "mcp__context7__resolve-library-id",
+      "mcp__context7__query-docs",
+      "Bash(npm install *)",
+      "Bash(npx shadcn@latest init --defaults --yes)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npx shadcn@latest add badge card dialog input label tooltip --yes)"
+    ]
+  }
+}

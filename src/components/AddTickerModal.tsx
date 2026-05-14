@@ -1,6 +1,15 @@
 import { useState, useRef, useEffect } from 'react'
-import { addToWatchlist } from '../api/client'
-import './AddTickerModal.css'
+import { addToWatchlist } from '@/api/client'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog'
 
 interface Props {
   onClose: () => void
@@ -14,7 +23,7 @@ export function AddTickerModal({ onClose, onAdded }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    inputRef.current?.focus()
+    setTimeout(() => inputRef.current?.focus(), 50)
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -34,24 +43,18 @@ export function AddTickerModal({ onClose, onAdded }: Props) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={e => e.stopPropagation()}>
-        <div className="modal-header">
-          <h2>Agregar ticker</h2>
-          <button className="modal-close" onClick={onClose} aria-label="Cerrar">
-            ✕
-          </button>
-        </div>
+    <Dialog open onOpenChange={open => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Agregar ticker</DialogTitle>
+        </DialogHeader>
 
         <form onSubmit={e => void handleSubmit(e)}>
-          <div className="modal-body">
-            <label htmlFor="ticker-input" className="modal-label">
-              Ticker (ej: MSFT, AAPL)
-            </label>
-            <input
+          <div className="py-2 space-y-2">
+            <Label htmlFor="ticker-input">Ticker (ej: MSFT, AAPL)</Label>
+            <Input
               id="ticker-input"
               ref={inputRef}
-              className="modal-input"
               type="text"
               value={ticker}
               onChange={e => setTicker(e.target.value.toUpperCase())}
@@ -59,18 +62,21 @@ export function AddTickerModal({ onClose, onAdded }: Props) {
               disabled={loading}
               autoComplete="off"
             />
-            {error && <p className="modal-error">{error}</p>}
+            {error && (
+              <p className="text-xs text-destructive">{error}</p>
+            )}
           </div>
-          <div className="modal-footer">
-            <button type="button" className="btn-action" onClick={onClose} disabled={loading}>
+
+          <DialogFooter className="mt-4">
+            <Button type="button" variant="outline" onClick={onClose} disabled={loading}>
               Cancelar
-            </button>
-            <button type="submit" className="btn-primary" disabled={loading || !ticker.trim()}>
+            </Button>
+            <Button type="submit" disabled={loading || !ticker.trim()}>
               {loading ? 'Agregando...' : 'Agregar'}
-            </button>
-          </div>
+            </Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
