@@ -1,5 +1,13 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
+import {
+  useReactTable,
+  getCoreRowModel,
+  getSortedRowModel,
+  flexRender,
+  type ColumnDef,
+  type SortingState,
+} from '@tanstack/react-table'
 import { getWatchlist, removeFromWatchlist, calculate } from '@/api/client'
 import { usePageTitle } from '@/hooks/usePageTitle'
 import type { WatchlistItem } from '@/types/api'
@@ -9,7 +17,16 @@ import { Spinner } from '@/components/Spinner'
 import { ErrorMessage } from '@/components/ErrorMessage'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TrendingUp, TrendingDown, Minus, Plus } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, Plus, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react'
+
+const VERDICT_ORDER = { UNDERVALUED: 0, FAIR_VALUE: 1, OVERVALUED: 2 }
+
+function SortIcon({ canSort, isSorted }: { canSort: boolean; isSorted: false | 'asc' | 'desc' }) {
+  if (!canSort) return null
+  if (isSorted === 'asc') return <ArrowUp size={13} className="ml-1 inline-block" />
+  if (isSorted === 'desc') return <ArrowDown size={13} className="ml-1 inline-block" />
+  return <ArrowUpDown size={13} className="ml-1 inline-block opacity-40" />
+}
 
 export function WatchlistPage() {
   const [items, setItems] = useState<WatchlistItem[]>([])
@@ -17,6 +34,7 @@ export function WatchlistPage() {
   const [error, setError] = useState<string | null>(null)
   const [recalculating, setRecalculating] = useState<Set<string>>(new Set())
   const [showModal, setShowModal] = useState(false)
+  const [sorting, setSorting] = useState<SortingState>([])
   const navigate = useNavigate()
   usePageTitle('Watchlist')
 
@@ -58,6 +76,54 @@ export function WatchlistPage() {
       setError(`Error al eliminar ${ticker}.`)
     }
   }
+
+  const columns = useMemo<ColumnDef<WatchlistItem>[]>(() => [
+    {
+      accessorKey: 'ticker',
+      header: 'Ticker',
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'companyName',
+      header: 'Empresa',
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'currentPrice',
+      header: 'Precio',
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'intrinsicValue',
+      header: 'Valor Intrínseco',
+      enableSorting: false,
+    },
+    {
+      accessorKey: 'marginOfSafety',
+      header: 'Margen',
+      sortDescFirst: true,
+    },
+    {
+      accessorKey: 'verdict',
+      header: 'Veredicto',
+      sortingFn: (rowA, rowB) =>
+        VERDICT_ORDER[rowA.original.verdict] - VERDICT_ORDER[rowB.original.verdict],
+    },
+    {
+      id: 'acciones',
+      header: 'Acciones',
+      enableSorting: false,
+    },
+  ], [])
+
+  const table = useReactTable({
+    data: items,
+    columns,
+    state: { sorting },
+    onSortingChange: setSorting,
+    getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
+  })
 
   if (loading) return <Spinner text="Cargando watchlist..." />
 
@@ -150,64 +216,73 @@ export function WatchlistPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-3">Ticker</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-3">Empresa</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-3">Precio</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-3">Valor Intrínseco</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-3">Margen</th>
-                  <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-3">Veredicto</th>
-                  <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-3">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {items.map((item, idx) => (
-                  <tr
-                    key={item.ticker}
-                    className={`border-b border-border last:border-0 hover:bg-muted/40 transition-colors ${idx % 2 === 0 ? '' : 'bg-muted/20'}`}
-                  >
-                    <td className="px-4 py-3 font-mono font-semibold text-foreground">{item.ticker}</td>
-                    <td className="px-4 py-3 text-muted-foreground">{item.companyName}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${item.currentPrice.toFixed(2)}</td>
-                    <td className="px-4 py-3 text-right tabular-nums">${item.intrinsicValue.toFixed(2)}</td>
-                    <td
-                      className="px-4 py-3 text-right tabular-nums font-medium"
-                      style={{ color: item.marginOfSafety >= 0 ? 'var(--verdict-under)' : 'var(--verdict-over)' }}
-                    >
-                      {item.marginOfSafety.toFixed(1)}%
-                    </td>
-                    <td className="px-4 py-3">
-                      <VerdictBadge verdict={item.verdict} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => navigate(`/ticker/${item.ticker}`)}
+                {table.getHeaderGroups().map(headerGroup => (
+                  <tr key={headerGroup.id} className="border-b border-border">
+                    {headerGroup.headers.map(header => {
+                      const canSort = header.column.getCanSort()
+                      const isSorted = header.column.getIsSorted()
+                      const isActions = header.id === 'acciones'
+                      return (
+                        <th
+                          key={header.id}
+                          className={`text-xs font-medium text-muted-foreground uppercase tracking-wide px-4 py-3 ${isActions ? 'text-right' : 'text-left'} ${canSort ? 'cursor-pointer select-none hover:text-foreground transition-colors' : ''}`}
+                          onClick={header.column.getToggleSortingHandler()}
                         >
-                          Ver
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          disabled={recalculating.has(item.ticker)}
-                          onClick={() => void handleRecalculate(item.ticker)}
-                        >
-                          {recalculating.has(item.ticker) ? '...' : 'Recalcular'}
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
-                          onClick={() => void handleRemove(item.ticker)}
-                        >
-                          Eliminar
-                        </Button>
-                      </div>
-                    </td>
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          <SortIcon canSort={canSort} isSorted={isSorted} />
+                        </th>
+                      )
+                    })}
                   </tr>
                 ))}
+              </thead>
+              <tbody>
+                {table.getRowModel().rows.map((row, idx) => {
+                  const item = row.original
+                  return (
+                    <tr
+                      key={item.ticker}
+                      className={`border-b border-border last:border-0 hover:bg-muted/40 transition-colors ${idx % 2 === 0 ? '' : 'bg-muted/20'}`}
+                    >
+                      <td className="px-4 py-3 font-mono font-semibold text-foreground">{item.ticker}</td>
+                      <td className="px-4 py-3 text-muted-foreground">{item.companyName}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">${item.currentPrice.toFixed(2)}</td>
+                      <td className="px-4 py-3 text-right tabular-nums">${item.intrinsicValue.toFixed(2)}</td>
+                      <td
+                        className="px-4 py-3 text-right tabular-nums font-medium"
+                        style={{ color: item.marginOfSafety >= 0 ? 'var(--verdict-under)' : 'var(--verdict-over)' }}
+                      >
+                        {item.marginOfSafety.toFixed(1)}%
+                      </td>
+                      <td className="px-4 py-3">
+                        <VerdictBadge verdict={item.verdict} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
+                          <Button variant="outline" size="sm" onClick={() => navigate(`/ticker/${item.ticker}`)}>
+                            Ver
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            disabled={recalculating.has(item.ticker)}
+                            onClick={() => void handleRecalculate(item.ticker)}
+                          >
+                            {recalculating.has(item.ticker) ? '...' : 'Recalcular'}
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                            onClick={() => void handleRemove(item.ticker)}
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
               </tbody>
             </table>
           </div>

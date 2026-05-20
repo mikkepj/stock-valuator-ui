@@ -16,5 +16,28 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(npx shadcn@latest add badge card dialog input label tooltip --yes)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'echo \"$CLAUDE_TOOL_INPUT\" | python3 -c \"import sys,json; d=json.load(sys.stdin); f=d.get(\\\"file_path\\\",\\\"\\\"); print(f)\" | grep -E \"\\.(tsx|ts)$\" && npm run lint --silent 2>&1 | head -30 || true'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"✅ Claude terminó la tarea\""
+          }
+        ]
+      }
+    ]
   }
 }

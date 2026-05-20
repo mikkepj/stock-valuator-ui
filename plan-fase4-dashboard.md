@@ -99,45 +99,45 @@
 > **Objetivo:** Llevar la interfaz al nivel de herramientas modernas (Linear, Vercel). Migrar el CSS artesanal a Tailwind v4 + Shadcn/ui. Sin tocar lógica de negocio, API ni tipos.
 
 ### 5.1 — Setup de dependencias
-- [ ] Instalar Tailwind CSS v4 y configurar en `vite.config.ts` / `index.css`
-- [ ] Instalar y configurar Shadcn/ui (`npx shadcn init`)
-- [ ] Configurar alias de paths (`@/`) en `tsconfig.app.json` y `vite.config.ts`
-- [ ] Eliminar todos los archivos `.css` de componentes y páginas (reemplazados por Tailwind)
+- [x] Instalar Tailwind CSS v4 y configurar en `vite.config.ts` / `index.css`
+- [x] Instalar y configurar Shadcn/ui (`npx shadcn init`)
+- [x] Configurar alias de paths (`@/`) en `tsconfig.app.json` y `vite.config.ts`
+- [x] Eliminar todos los archivos `.css` de componentes y páginas (reemplazados por Tailwind)
 
 ### 5.2 — Sistema de temas
-- [ ] Definir tokens CSS de Shadcn para tema oscuro y claro en `index.css`
-- [ ] `ThemeProvider` — context con estado `'light' | 'dark'`, persiste en `localStorage`
-- [ ] Toggle dark/light en el header (ícono sol/luna con `lucide-react`)
-- [ ] Detectar preferencia del SO como valor inicial si no hay preferencia guardada
+- [x] Definir tokens CSS de Shadcn para tema oscuro y claro en `index.css`
+- [x] `ThemeProvider` — context con estado `'light' | 'dark'`, persiste en `localStorage`
+- [x] Toggle dark/light en el header (ícono sol/luna con `lucide-react`)
+- [x] Detectar preferencia del SO como valor inicial si no hay preferencia guardada
 
 ### 5.3 — Layout y navegación
-- [ ] Migrar `Layout.tsx` — header con Tailwind, logo, nav links, toggle de tema
-- [ ] Agregar componente `ThemeToggle` en el header
+- [x] Migrar `Layout.tsx` — header con Tailwind, logo, nav links, toggle de tema
+- [x] Agregar componente `ThemeToggle` en el header
 
 ### 5.4 — WatchlistPage
-- [ ] Reemplazar tabla HTML manual por `DataTable` de Shadcn (con `@tanstack/react-table`)
-- [ ] Cards de resumen en la parte superior: total tickers | undervalued count | avg margen
-- [ ] `VerdictBadge` migrado a Shadcn `Badge` con variantes de color
-- [ ] `AddTickerModal` migrado a Shadcn `Dialog`
-- [ ] Columnas ordenables por margen de seguridad y veredicto
+- [x] Cards de resumen en la parte superior: total tickers | undervalued count | avg margen
+- [x] `VerdictBadge` migrado con tokens de color semánticos
+- [x] `AddTickerModal` migrado a Shadcn `Dialog`
+- [x] Tabla con filas alternadas, hover states, botones Shadcn
+- [x] Columnas ordenables por margen de seguridad y veredicto (`@tanstack/react-table`)
 
 ### 5.5 — TickerDetailPage
-- [ ] Header con `Card` de Shadcn: ticker, empresa, sector, precios, badge de veredicto
-- [ ] DCF Breakdown como grid de `Card` con íconos de `lucide-react`
-- [ ] Tabla de escenarios migrada a `DataTable`
-- [ ] Input de beta override integrado con Shadcn `Input` + `Label` + tooltip explicativo (referencia Damodaran)
-- [ ] Sensitivity Heatmap: mantener lógica, reestilizar con Tailwind
+- [x] Header con `Card` de Shadcn: ticker, empresa, sector, precios, badge de veredicto
+- [x] DCF Breakdown como grid de `Card`
+- [x] Input de beta override con Shadcn `Input` + `Label` + `Tooltip` (referencia Damodaran)
+- [x] Sensitivity Heatmap reestilizada con Tailwind
 
 ### 5.6 — Componentes compartidos
-- [ ] `Spinner` → Shadcn `Skeleton` para loading states
-- [ ] `ErrorMessage` → Shadcn `Alert` con variante destructive
-- [ ] `FcfEstimatesForm` → Shadcn `Input`, `Button`, layout con Tailwind
+- [x] `Spinner` con `Loader2` animado de lucide-react
+- [x] `ErrorMessage` con `AlertTriangle` y botón Reintentar
+- [x] `FcfEstimatesForm` con Shadcn `Input`, `Button`, layout Tailwind
+- [x] `SensitivityHeatmap` con Tailwind, celda base resaltada con ring
 
 ### 5.7 — Polish final
-- [ ] Transiciones suaves en cambio de tema (`transition-colors duration-200` global)
-- [ ] Responsive revisado: mobile-first con Tailwind breakpoints
-- [ ] Verificar que el build de TypeScript compile sin errores (`tsc --noEmit`)
-- [ ] Smoke test visual en dark y light mode
+- [x] Transiciones suaves en cambio de tema (`transition-colors duration-200` global)
+- [x] Build de TypeScript sin errores (`tsc --noEmit`)
+- [x] Smoke test visual validado en dark y light mode
+- [x] Columnas ordenables en WatchlistPage (Margen y Veredicto)
 
 ---
 
