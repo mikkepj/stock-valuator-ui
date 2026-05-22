@@ -1,24 +1,43 @@
+---
+name: fix-ui
+description: "Workflow: Fix de bug visual (UI)"
+argument-hint: "[descripción del bug] [ruta o componente afectado]"
+---
+
 # Workflow: Fix de bug visual (UI)
+---
+
+## PASO 0 — Documentar el bug antes de tocarlo
+
+Crear `docs/plans/fix-<nombre>.md` con:
+
+### Síntoma visual
+¿Qué se ve? / ¿Qué debería verse? / ¿Dónde? (ruta, componente,
+breakpoint, dark/light) / ¿Cuándo? (siempre, al hover, con datos específicos)
+
+Ejemplo útil:
+> "En /ticker/MSFT modo dark, el badge muestra fondo blanco en lugar
+> de verde. Solo en dark mode. Screenshot adjunto."
+
+### Causa raíz hipotética
+[Primera hipótesis — color hardcodeado, token semántico mal usado, etc.]
+
+### Opciones de fix
+[Al menos 2 opciones con trade-offs]
+
+### Test que reproduce el bug
+[Given / When / Then]
+
+### Criterio de éxito
+[Qué debe pasar en dark Y light mode para considerar el bug resuelto]
+
+**Si tienes screenshot, adjuntarlo aquí. Claude Code lee imágenes directamente.**
+
+**Esperar aprobación antes de continuar.**
 
 ---
 
-## PASO 1 — Describir el problema
-
-Antes de tocar código, documentar:
-
-1. **¿Qué se ve?** — describir el comportamiento visual actual
-2. **¿Qué debería verse?** — comportamiento esperado
-3. **¿Dónde?** — ruta (`/` o `/ticker/:ticker`), componente, breakpoint, modo (dark/light)
-4. **¿Cuándo?** — siempre, al hover, al cargar, con datos específicos
-
-Si tenés screenshot, adjuntarlo al mensaje. Claude Code puede leer imágenes directamente.
-
-Ejemplo de descripción útil:
-> "En `/ticker/MSFT` modo dark, el badge de veredicto `Infravalorada` tiene fondo blanco en lugar de verde translúcido. Solo pasa en dark mode. Screenshot adjunto."
-
----
-
-## PASO 2 — Localizar el componente
+## PASO 1 — Localizar el componente
 
 Mapa rápido:
 
@@ -42,7 +61,7 @@ Mapa rápido:
 
 ---
 
-## PASO 3 — Entender el sistema de estilos
+## PASO 2 — Entender el sistema de estilos
 
 Este proyecto usa **Tailwind v4 + tokens Shadcn**. No hay archivos `.css` por componente.
 
@@ -72,7 +91,7 @@ Este proyecto usa **Tailwind v4 + tokens Shadcn**. No hay archivos `.css` por co
 
 ---
 
-## PASO 4 — Patrones de fix comunes
+## PASO 3 — Patrones de fix comunes
 
 **Color hardcodeado que no respeta dark mode:**
 ```tsx
@@ -107,7 +126,7 @@ import { cn } from '@/lib/utils'
 
 ---
 
-## PASO 5 — Verificar el fix
+## PASO 4 — Verificar el fix
 
 1. `npx tsc --noEmit` — sin errores de tipos
 2. `npm run lint` — sin warnings

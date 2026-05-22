@@ -1,10 +1,45 @@
+---
+name: new-component
+description: "Workflow: Agregar un nuevo componente React"
+argument-hint: "[NombreComponente] [tipo: shadcn|dominio|pagina]"
+---
+
 # Workflow: Agregar un nuevo componente React
 
 Seguir estos pasos en orden. No saltear el Paso 0.
 
 ---
 
-## PASO 0 — Context7 (obligatorio antes de escribir código)
+## PASO 0 — Crear plan de la feature
+
+Antes de cualquier otra cosa, crear el archivo:
+`docs/plans/plan-<nombre-feature>.md` con esta estructura:
+
+### Objetivo
+[Qué resuelve esta feature y por qué]
+
+### Módulo destino
+[api / components / otro]
+
+### Archivos a crear o modificar
+- [ ] archivo1.* — qué cambia
+- [ ] archivo2.* — qué cambia
+
+### Orden de implementación
+1. ...
+2. ...
+
+### Criterios de aceptación (como tests)
+- Given / When / Then por cada caso
+
+### Riesgos identificados
+- ...
+
+**Esperar aprobación explícita antes de continuar al PASO 1.**
+
+---
+
+## PASO 1 — Context7 (obligatorio antes de escribir código)
 
 Antes de tocar un solo archivo, usar Context7 para verificar la API actual de cada librería involucrada.
 
@@ -17,7 +52,7 @@ No asumir nada de memoria. Las APIs de Shadcn, @base-ui/react, react-router-dom 
 
 ---
 
-## PASO 1 — Determinar el tipo de componente
+## PASO 2 — Determinar el tipo de componente
 
 **¿Es un componente Shadcn?**
 - Instalar con CLI: `npx shadcn@latest add <nombre>`
@@ -33,7 +68,7 @@ No asumir nada de memoria. Las APIs de Shadcn, @base-ui/react, react-router-dom 
 
 ---
 
-## PASO 2 — Estructura del archivo
+## PASO 3 — Estructura del archivo
 
 ```tsx
 // Imports de librerías externas primero
@@ -60,7 +95,7 @@ export function NombreComponente({ valor, opcional, callback }: Props) {
 
 ---
 
-## PASO 3 — Reglas de estilo
+## PASO 4 — Reglas de estilo
 
 - **Clases Tailwind** para todo el layout y espaciado — no CSS externo
 - **Tokens semánticos** de Shadcn: `bg-background`, `text-foreground`, `text-muted-foreground`, `border-border`, `bg-card`
@@ -70,7 +105,7 @@ export function NombreComponente({ valor, opcional, callback }: Props) {
 
 ---
 
-## PASO 4 — Tipado
+## PASO 5 — Tipado
 
 - Todas las props tipadas con interface nombrada
 - Datos de la API: usar tipos de `@/types/api.ts` — nunca `any`
@@ -78,7 +113,7 @@ export function NombreComponente({ valor, opcional, callback }: Props) {
 
 ---
 
-## PASO 5 — Verificación
+## PASO 6 — Verificación
 
 ```bash
 npx tsc --noEmit          # sin errores de tipos
