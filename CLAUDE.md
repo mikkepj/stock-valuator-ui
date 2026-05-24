@@ -45,7 +45,9 @@ stock-valuator-ui/
 │   │   ├── ErrorMessage.tsx   ← error state con AlertTriangle + botón Reintentar
 │   │   ├── AddTickerModal.tsx ← Dialog de Shadcn para agregar ticker a watchlist
 │   │   ├── FcfEstimatesForm.tsx ← formulario 5 inputs para FCF estimates de analistas
-│   │   └── SensitivityHeatmap.tsx ← tabla 5×5 con gradiente rojo→verde
+│   │   ├── SensitivityHeatmap.tsx ← tabla 5×5 con gradiente rojo→verde
+│   │   ├── QualityScoreBadge.tsx ← score 0–100 con categoría y tooltip (Fase 6)
+│   │   └── MonteCarloChart.tsx   ← BarChart horizontal P10–P90 con Recharts (Fase 6)
 │   ├── pages/
 │   │   ├── WatchlistPage.tsx  ← ruta `/` — lista de tickers con cards de resumen
 │   │   └── TickerDetailPage.tsx ← ruta `/ticker/:ticker` — detalle DCF completo
@@ -55,7 +57,9 @@ stock-valuator-ui/
 ├── components.json            ← configuración Shadcn/ui (estilo base-nova, alias @/)
 ├── vite.config.ts             ← plugins: react + tailwindcss; alias @/ → src/; proxy /api
 ├── tsconfig.app.json          ← paths @/* → ./src/*
-└── plan-fase4-dashboard.md    ← plan de ejecución del proyecto
+├── plan-fase4-dashboard.md    ← plan de ejecución del proyecto
+├── LEARNINGS.md               ← decisiones técnicas, problemas resueltos y quirks del stack
+└── docs/plans/                ← planes de feature branches
 ```
 
 ### Flujo de datos
@@ -113,12 +117,14 @@ components/  (presentacionales, sin lógica HTTP)
 
 **`TickerDetailPage`** (`/ticker/:ticker`)
 - Carga `getValuation(ticker)` al montar
-- Header Card: ticker, empresa, sector, precios, VerdictBadge
+- Header Card: ticker, empresa, sector, precios, VerdictBadge + QualityScoreBadge (si viene del BE)
 - Input beta override (opcional) + botón Recalcular DCF con ícono animado
 - Tabla de 3 escenarios (Base/Optimista/Pesimista)
-- Grid de Cards: breakdown DCF (WACC, Terminal Growth, etc.) + betaUsed si aplica
+- Grid de Cards: breakdown DCF — campos base + 6 campos opcionales de Fase 6 (se omiten si son `undefined`)
+- Alerta destructiva si `growthExceedsRoic === 1` (comparar como `number`, no `boolean`)
 - FcfEstimatesForm (preocarga estimates existentes)
 - SensitivityHeatmap 5×5
+- MonteCarloChart — sección condicional debajo del heatmap (solo si `monteCarlo != null`)
 
 ### Componentes reutilizables
 
@@ -130,6 +136,8 @@ components/  (presentacionales, sin lógica HTTP)
 | `AddTickerModal` | `onClose: () => void`, `onAdded: () => void` | Dialog Shadcn, input ticker en uppercase, llama addToWatchlist |
 | `FcfEstimatesForm` | `ticker: string`, `onRecalculated: (data: ValuationResponse) => void` | 5 inputs, precarga del BE, guarda y recalcula |
 | `SensitivityHeatmap` | `matrix: Record<string,Record<string,number>>`, `basePrice: number` | Tabla 5×5 gradiente rojo→verde, celda base resaltada con ring |
+| `QualityScoreBadge` | `score: number` | Score 0–100 con categoría (Excelente/Bueno/Moderado/Débil) y tooltip descriptivo |
+| `MonteCarloChart` | `monteCarlo: MonteCarloResult`, `marketPrice: number` | BarChart horizontal P10–P90, barras verdes/rojas vs precio, ReferenceLine del precio |
 | `ThemeToggle` | — | Botón Sun/Moon, consume useTheme() |
 | `Layout` | — | Header sticky + `<Outlet />`, envuelve todas las rutas |
 
@@ -200,13 +208,16 @@ saveFcfEstimates(ticker, estimates)         // POST /companies/{ticker}/fcf-esti
 
 ### Tipos principales (`src/types/api.ts`)
 
-- `ValuationResponse` — respuesta completa del DCF (ticker, precios, escenarios, matrix, breakdown, `betaUsed`)
+- `ValuationResponse` — respuesta completa del DCF (ticker, precios, escenarios, matrix, breakdown, `betaUsed`, `monteCarlo?`, `qualityScore?`)
+- `MonteCarloResult` — percentiles `p10/p25/p50/p75/p90` + `simulationCount`
 - `WatchlistItem` — item resumido para la tabla de watchlist
 - `ScenarioResult` — un escenario DCF (Base/Optimista/Pesimista)
 - `Verdict` — `'UNDERVALUED' | 'FAIR_VALUE' | 'OVERVALUED'`
 - `ApiError` — error estándar del BE `{ timestamp, status, error, path }`
 
 **Regla:** mantener `api.ts` sincronizado con los records Java del BE. Nunca usar `any` para datos de la API.
+
+**`breakdown` es una intersección:** `Record<string, number> & { roic?: number, effectiveTaxRate?: number, ... }` — permite acceso dinámico (`breakdown['sumPvFcfs']`) y tipado para los campos conocidos de Fase 6.
 
 ---
 
@@ -244,6 +255,7 @@ saveFcfEstimates(ticker, estimates)         // POST /companies/{ticker}/fcf-esti
 - **Fase 4** — Dashboard completo: WatchlistPage, TickerDetailPage, SensitivityHeatmap, FCF Estimates, escenarios DCF
 - **Beta override** — input opcional en recálculo, `betaUsed` en breakdown
 - **Fase 5** — UI Redesign completa: Shadcn/ui + Tailwind v4 + tema dark/light + columnas ordenables
+- **Fase 6** — Métricas DCF avanzadas: QualityScoreBadge, MonteCarloChart, 6 campos nuevos en breakdown, alerta growthExceedsRoic
 
 ### Decisiones de diseño tomadas
 
@@ -251,15 +263,21 @@ saveFcfEstimates(ticker, estimates)         // POST /companies/{ticker}/fcf-esti
 - **Sorting de Veredicto** usa orden lógico DCF (`UNDERVALUED=0, FAIR_VALUE=1, OVERVALUED=2`), no alfabético.
 - **`@tanstack/react-table`** se usa headless (sin estilos propios) — el render de filas y celdas es manual con Tailwind, igual al resto de la UI.
 - **CSS artesanal eliminado** — no existen archivos `.css` por componente; todo estilo va en clases Tailwind o tokens CSS vars en `index.css`.
+- **Campos opcionales del BE se omiten completamente** — cuando un campo del breakdown es `undefined`, la card no se renderiza. No mostrar `"--"` ni placeholders.
+- **`growthExceedsRoic` se compara como `number`** — llega como `BigDecimal` de Java, en JSON es `0` o `1`. Comparar con `=== 1`, nunca `=== true`.
+- **`fmtBig` soporta trillones** — `$1.60T` para `terminalValueExitMultiple` de empresas grandes. Umbral: `>= 1e12`.
+- **`QualityScoreBadge` usa clases Tailwind directas** (`text-green-500`, etc.) en vez de CSS vars de veredicto — son colores de UX genéricos, no colores del dominio DCF.
+- **`MonteCarloChart` requiere contenedor con altura explícita** — `ResponsiveContainer` de Recharts necesita un padre con `height` definido o el gráfico no se renderiza.
 - **Commits y push requieren aprobación explícita del usuario** antes de ejecutarse.
 
 ### Pendiente
 
 - **Fase 4.5** — Deploy a Vercel (requiere URL del BE en producción)
+- **Fase 6 smoke test final** — validar con AAPL contra BE con `feature/dcf-quality-improvements` activa
 
 ### Git flow
 
 - `main` — producción
 - `develop` — integración
-- `feature/ui-redesign-shadcn` — rama activa (Fase 5, pendiente de merge a develop)
+- `feature/fase6-dcf-advanced-metrics` — rama activa (Fase 6, pendiente de merge a develop)
 - Siempre crear `feature/<nombre>` desde `develop`, mergear de vuelta con `--no-ff`

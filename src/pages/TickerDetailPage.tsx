@@ -14,6 +14,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { ArrowLeft, Info, RefreshCw } from 'lucide-react'
+import { QualityScoreBadge } from '@/components/QualityScoreBadge'
+import { MonteCarloChart } from '@/components/MonteCarloChart'
 
 function fmt(n: number, decimals = 2) {
   return n.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals })
@@ -24,6 +26,7 @@ function fmtPct(n: number) {
 }
 
 function fmtBig(n: number) {
+  if (Math.abs(n) >= 1e12) return `$${(n / 1e12).toFixed(2)}T`
   if (Math.abs(n) >= 1e9) return `$${(n / 1e9).toFixed(2)}B`
   if (Math.abs(n) >= 1e6) return `$${(n / 1e6).toFixed(2)}M`
   return `$${fmt(n)}`
@@ -139,6 +142,9 @@ export function TickerDetailPage() {
                 <div className="flex items-center gap-3 mb-1">
                   <span className="font-mono text-2xl font-bold text-foreground">{data.ticker}</span>
                   <VerdictBadge verdict={data.verdict} />
+                  {data.qualityScore != null && (
+                    <QualityScoreBadge score={data.qualityScore} />
+                  )}
                 </div>
                 <h1 className="text-lg font-medium text-foreground">{data.companyName}</h1>
                 <span className="text-sm text-muted-foreground">{data.sector}</span>
@@ -206,11 +212,19 @@ export function TickerDetailPage() {
         {/* DCF Breakdown */}
         <div>
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">DCF Breakdown</h2>
+
+          {data.breakdown.growthExceedsRoic === 1 && (
+            <div className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 mb-3 text-sm text-destructive">
+              <Info size={14} className="shrink-0" />
+              <span>El crecimiento proyectado supera el ROIC — el valor terminal puede estar sobreestimado.</span>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {[
               { label: 'WACC', value: fmtPct(data.wacc) },
               { label: 'Terminal Growth', value: fmtPct(data.terminalGrowthRate) },
-              { label: 'Terminal Value', value: fmtBig(data.terminalValue) },
+              { label: 'Terminal Value (Gordon)', value: fmtBig(data.terminalValue) },
               { label: 'Net Debt', value: fmtBig(data.netDebt) },
               { label: 'Años de proyección', value: String(data.projectionYears) },
               ...(data.breakdown['sumPvFcfs'] !== undefined
@@ -218,6 +232,24 @@ export function TickerDetailPage() {
                 : []),
               ...(data.betaUsed !== null && data.betaUsed !== undefined
                 ? [{ label: 'Beta utilizada', value: fmt(data.betaUsed) }]
+                : []),
+              ...(data.breakdown.terminalValueExitMultiple !== undefined
+                ? [{ label: 'Terminal Value (Exit Multiple)', value: fmtBig(data.breakdown.terminalValueExitMultiple) }]
+                : []),
+              ...(data.breakdown.effectiveTaxRate !== undefined
+                ? [{ label: 'Tasa impositiva efectiva', value: fmtPct(data.breakdown.effectiveTaxRate) }]
+                : []),
+              ...(data.breakdown.creditSpread !== undefined
+                ? [{ label: 'Spread crediticio', value: fmtPct(data.breakdown.creditSpread) }]
+                : []),
+              ...(data.breakdown.sizeRiskPremium !== undefined
+                ? [{ label: 'Prima por tamaño', value: fmtPct(data.breakdown.sizeRiskPremium) }]
+                : []),
+              ...(data.breakdown.roic !== undefined
+                ? [{ label: 'ROIC', value: fmtPct(data.breakdown.roic) }]
+                : []),
+              ...(data.breakdown.maxSustainableGrowth !== undefined
+                ? [{ label: 'Crecimiento máx. sostenible', value: fmtPct(data.breakdown.maxSustainableGrowth) }]
                 : []),
             ].map(({ label, value }) => (
               <Card key={label}>
@@ -254,6 +286,21 @@ export function TickerDetailPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Monte Carlo */}
+        {data.monteCarlo != null && (
+          <div>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-1">Simulación Monte Carlo</h2>
+            <p className="text-xs text-muted-foreground mb-3">
+              Distribución de valor intrínseco por percentil — verde si supera el precio de mercado
+            </p>
+            <Card>
+              <CardContent className="pt-5">
+                <MonteCarloChart monteCarlo={data.monteCarlo} marketPrice={data.marketPrice} />
+              </CardContent>
+            </Card>
+          </div>
+        )}
 
         <p className="text-xs text-muted-foreground text-right pb-4">
           Última actualización: {new Date(data.lastUpdated).toLocaleString('es-AR')}
