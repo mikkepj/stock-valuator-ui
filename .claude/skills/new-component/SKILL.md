@@ -10,10 +10,13 @@ Seguir estos pasos en orden. No saltear el Paso 0.
 
 ---
 
-## PASO 0 — Crear plan de la feature
+## PASO 0 — Crear rama y plan de la feature
 
-Antes de cualquier otra cosa, crear el archivo:
-`docs/plans/plan-<nombre-feature>.md` con esta estructura:
+- Crear una nueva rama a partir de `develop` con el formato: 
+`feature/<nombre-feature>` (ej: `feature/valuation-card`)
+
+- Antes de cualquier otra cosa, crear el archivo:
+`docs/plans/plan-<nombre-feature>.md` con la siguiente estructura:
 
 ### Objetivo
 [Qué resuelve esta feature y por qué]

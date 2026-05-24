@@ -16,7 +16,8 @@
       "Bash(echo \"EXIT:$?\")",
       "Bash(npx shadcn@latest add badge card dialog input label tooltip --yes)",
       "Bash(Get-ChildItem -Recurse \"C:\\\\workspaces\\\\intellij\\\\stock-valuator-ui\\\\.claude\\\\skills\")",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Read(//dev/**)"
     ]
   },
   "hooks": {
