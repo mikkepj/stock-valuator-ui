@@ -1,4 +1,4 @@
-import type { Verdict } from '../types/api'
+import type { Verdict } from '@/types/api'
 
 const VERDICT_LABELS: Record<Verdict, string> = {
   UNDERVALUED: 'Infravalorada',
@@ -6,10 +6,10 @@ const VERDICT_LABELS: Record<Verdict, string> = {
   OVERVALUED: 'Sobrevalorada',
 }
 
-const VERDICT_COLORS: Record<Verdict, string> = {
-  UNDERVALUED: '#22c55e',
-  FAIR_VALUE: '#eab308',
-  OVERVALUED: '#ef4444',
+const VERDICT_STYLES: Record<Verdict, { color: string; bg: string; border: string }> = {
+  UNDERVALUED: { color: 'var(--verdict-under)', bg: 'color-mix(in srgb, var(--verdict-under) 12%, transparent)', border: 'color-mix(in srgb, var(--verdict-under) 35%, transparent)' },
+  FAIR_VALUE:  { color: 'var(--verdict-fair)',  bg: 'color-mix(in srgb, var(--verdict-fair) 12%, transparent)',  border: 'color-mix(in srgb, var(--verdict-fair) 35%, transparent)' },
+  OVERVALUED:  { color: 'var(--verdict-over)',  bg: 'color-mix(in srgb, var(--verdict-over) 12%, transparent)',  border: 'color-mix(in srgb, var(--verdict-over) 35%, transparent)' },
 }
 
 interface Props {
@@ -17,20 +17,11 @@ interface Props {
 }
 
 export function VerdictBadge({ verdict }: Props) {
-  const color = VERDICT_COLORS[verdict]
+  const { color, bg, border } = VERDICT_STYLES[verdict]
   return (
     <span
-      style={{
-        display: 'inline-block',
-        padding: '0.2rem 0.5rem',
-        borderRadius: '4px',
-        fontSize: '0.75rem',
-        fontWeight: 600,
-        letterSpacing: '0.3px',
-        color,
-        background: `${color}18`,
-        border: `1px solid ${color}40`,
-      }}
+      className="inline-block px-2 py-0.5 rounded text-xs font-semibold tracking-wide"
+      style={{ color, background: bg, border: `1px solid ${border}` }}
     >
       {VERDICT_LABELS[verdict]}
     </span>

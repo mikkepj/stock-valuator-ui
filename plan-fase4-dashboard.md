@@ -89,6 +89,132 @@
 ## Mejoras pendientes
 
 - [x] **FCF Estimates pre-cargados:** `GET /companies/{ticker}/fcf-estimates` devuelve `number[]`. `FcfEstimatesForm` carga los valores al montar y pre-rellena los inputs. Si no hay estimates en BD los inputs quedan vacíos.
+- [x] **Beta override en recálculo:** input numérico opcional en `TickerDetailPage`; si se ingresa, se envía `{ betaOverride }` en el body del `POST /valuations/{ticker}/calculate`. `betaUsed` se muestra en el DCF Breakdown.
+
+---
+
+## Fase 5 — UI Redesign: Shadcn/ui + Tailwind + Tema oscuro/claro
+
+> **Rama:** `feature/ui-redesign-shadcn`
+> **Objetivo:** Llevar la interfaz al nivel de herramientas modernas (Linear, Vercel). Migrar el CSS artesanal a Tailwind v4 + Shadcn/ui. Sin tocar lógica de negocio, API ni tipos.
+
+### 5.1 — Setup de dependencias
+- [x] Instalar Tailwind CSS v4 y configurar en `vite.config.ts` / `index.css`
+- [x] Instalar y configurar Shadcn/ui (`npx shadcn init`)
+- [x] Configurar alias de paths (`@/`) en `tsconfig.app.json` y `vite.config.ts`
+- [x] Eliminar todos los archivos `.css` de componentes y páginas (reemplazados por Tailwind)
+
+### 5.2 — Sistema de temas
+- [x] Definir tokens CSS de Shadcn para tema oscuro y claro en `index.css`
+- [x] `ThemeProvider` — context con estado `'light' | 'dark'`, persiste en `localStorage`
+- [x] Toggle dark/light en el header (ícono sol/luna con `lucide-react`)
+- [x] Detectar preferencia del SO como valor inicial si no hay preferencia guardada
+
+### 5.3 — Layout y navegación
+- [x] Migrar `Layout.tsx` — header con Tailwind, logo, nav links, toggle de tema
+- [x] Agregar componente `ThemeToggle` en el header
+
+### 5.4 — WatchlistPage
+- [x] Cards de resumen en la parte superior: total tickers | undervalued count | avg margen
+- [x] `VerdictBadge` migrado con tokens de color semánticos
+- [x] `AddTickerModal` migrado a Shadcn `Dialog`
+- [x] Tabla con filas alternadas, hover states, botones Shadcn
+- [x] Columnas ordenables por margen de seguridad y veredicto (`@tanstack/react-table`)
+
+### 5.5 — TickerDetailPage
+- [x] Header con `Card` de Shadcn: ticker, empresa, sector, precios, badge de veredicto
+- [x] DCF Breakdown como grid de `Card`
+- [x] Input de beta override con Shadcn `Input` + `Label` + `Tooltip` (referencia Damodaran)
+- [x] Sensitivity Heatmap reestilizada con Tailwind
+
+### 5.6 — Componentes compartidos
+- [x] `Spinner` con `Loader2` animado de lucide-react
+- [x] `ErrorMessage` con `AlertTriangle` y botón Reintentar
+- [x] `FcfEstimatesForm` con Shadcn `Input`, `Button`, layout Tailwind
+- [x] `SensitivityHeatmap` con Tailwind, celda base resaltada con ring
+
+### 5.7 — Polish final
+- [x] Transiciones suaves en cambio de tema (`transition-colors duration-200` global)
+- [x] Build de TypeScript sin errores (`tsc --noEmit`)
+- [x] Smoke test visual validado en dark y light mode
+- [x] Columnas ordenables en WatchlistPage (Margen y Veredicto)
+
+---
+
+## Fase 6 — Exposición de métricas DCF avanzadas del backend
+
+> **Contexto:** El backend completó 10 mejoras de calidad del motor DCF (rama `feature/dcf-quality-improvements`, mergeada a `develop`). El frontend no expone ninguna de ellas. Esta fase cierra esa brecha sin tocar lógica de negocio ni API.
+>
+> **Prerequisito:** Todas las tareas de Fase 5 completadas.
+> **Directivas:** TypeScript estricto, sin `any`. Usar context7 antes de cualquier API nueva de librería.
+
+---
+
+### 6.1 — Actualizar tipos (`src/types/api.ts`)
+
+- [ ] Agregar tipo `MonteCarloResult` con campos: `p10`, `p25`, `p50`, `p75`, `p90`, `simulationCount` (todos `number`)
+- [ ] Extender `ValuationResponse` con `monteCarlo?: MonteCarloResult` y `qualityScore?: number`
+- [ ] Extender `BreakdownMap` (o el tipo que represente `breakdown`) con los campos opcionales:
+  - `terminalValueExitMultiple?: number`
+  - `effectiveTaxRate?: number`
+  - `creditSpread?: number`
+  - `sizeRiskPremium?: number`
+  - `roic?: number`
+  - `maxSustainableGrowth?: number`
+  - `growthExceedsRoic?: number` (0 o 1 — viene como BigDecimal del backend)
+
+---
+
+### 6.2 — Ampliar DCF Breakdown en `TickerDetailPage`
+
+> Los nuevos campos van en la sección "DCF Breakdown" existente. No crear nueva sección.
+
+- [ ] Agregar fila **Tasa impositiva efectiva** (`effectiveTaxRate`) — formatear como porcentaje (ej. `14.3%`)
+- [ ] Agregar fila **Spread crediticio** (`creditSpread`) — formatear como porcentaje (ej. `0.63%`)
+- [ ] Agregar fila **Prima por tamaño** (`sizeRiskPremium`) — formatear como porcentaje (ej. `0.50%`)
+- [ ] Agregar fila **ROIC** (`roic`) — formatear como porcentaje (ej. `82.4%`)
+- [ ] Agregar fila **Crecimiento máximo sostenible** (`maxSustainableGrowth`) — formatear como porcentaje
+- [ ] Agregar fila **Terminal Value (Exit Multiple)** (`terminalValueExitMultiple`) — formatear como valor monetario con sufijo (ej. `$1.60T`)
+- [ ] Mostrar alerta/badge **"Crecimiento supera ROIC"** cuando `growthExceedsRoic === 1` — usar `Badge` de Shadcn con variante destructiva o `AlertTriangle` de lucide-react; ocultar completamente cuando sea 0
+
+---
+
+### 6.3 — Componente `QualityScoreBadge`
+
+> Nuevo componente en `src/components/QualityScoreBadge.tsx`. Mostrar en el header del `TickerDetailPage`, junto al `VerdictBadge`.
+
+- [ ] Crear `QualityScoreBadge.tsx` — recibe `score: number` (0–100)
+- [ ] Representación visual: número grande (ej. `90`) + label `/ 100` + texto de categoría:
+  - `80–100` → "Excelente" (verde `text-green-500`)
+  - `60–79` → "Bueno" (azul `text-blue-500`)
+  - `40–59` → "Moderado" (amarillo `text-yellow-500`)
+  - `0–39` → "Débil" (rojo `text-red-500`)
+- [ ] Usar `Tooltip` de Shadcn con texto: `"Score de calidad del negocio: FCF Growth, Consistencia, ROIC vs WACC, Apalancamiento, Tendencia de márgenes"`
+- [ ] Renderizar condicionalmente en `TickerDetailPage` solo si `qualityScore != null`
+
+---
+
+### 6.4 — Componente `MonteCarloChart`
+
+> Nuevo componente en `src/components/MonteCarloChart.tsx`. Nueva sección en `TickerDetailPage` debajo del Sensitivity Heatmap.
+
+- [ ] Crear `MonteCarloChart.tsx` — recibe `monteCarlo: MonteCarloResult` y `marketPrice: number`
+- [ ] Visualización: gráfico de barras horizontal (Recharts `BarChart`) mostrando los 5 percentiles como rango
+  - Alternativa más simple aceptable: tabla de 5 filas (P10 / P25 / P50 / P75 / P90) con barra de progreso CSS inline
+- [ ] Cada fila/barra coloreada según si el percentil está por encima o por debajo del precio de mercado (verde = oportunidad, rojo = sobrevaluado)
+- [ ] Incluir línea/indicador vertical del precio de mercado actual (`marketPrice`)
+- [ ] Mostrar `simulationCount` como subtítulo (ej. `"Basado en 1.000 simulaciones"`)
+- [ ] Renderizar condicionalmente en `TickerDetailPage` solo si `monteCarlo != null`
+- [ ] Usar context7 para la API de Recharts antes de implementar
+
+---
+
+### 6.5 — Polish y validación
+
+- [ ] Verificar que todos los nuevos campos se muestran con `--` o se omiten limpiamente cuando el valor es `null` / `undefined` (el backend puede no devolverlos para valoraciones antiguas)
+- [ ] Build TypeScript sin errores (`tsc --noEmit`)
+- [ ] Smoke test visual en dark y light mode con datos de AAPL (tiene todos los campos poblados)
+- [ ] Validar que la alerta `growthExceedsRoic` no aparece para AAPL (ROIC 82% >> crecimiento proyectado)
 
 ---
 
@@ -98,9 +224,12 @@
 |---------|-----------|
 | `src/types/api.ts` | Tipos TypeScript espejo de los DTOs Java — mantener sincronizados |
 | `src/api/client.ts` | Todas las llamadas HTTP al BE — no hacer fetch directo en componentes |
-| `src/components/` | `VerdictBadge`, `Spinner`, `ErrorMessage`, `AddTickerModal`, `SensitivityHeatmap`, `FcfEstimatesForm`, `Layout` |
+| `src/components/` | `VerdictBadge`, `Spinner`, `ErrorMessage`, `AddTickerModal`, `SensitivityHeatmap`, `FcfEstimatesForm`, `Layout`, `ThemeToggle` |
 | `src/hooks/usePageTitle.ts` | Título dinámico de pestaña |
+| `src/hooks/useTheme.ts` | Hook para leer y cambiar el tema activo |
+| `src/lib/utils.ts` | `cn()` helper de Shadcn para combinar clases Tailwind |
 | `CLAUDE.md` | Contexto del proyecto, contratos API, convenciones |
-| `vite.config.ts` | Proxy dev hacia BE en localhost:8080 |
+| `vite.config.ts` | Proxy dev hacia BE en localhost:8080, alias `@/` |
 | `vercel.json` | Rewrite SPA para deploy en Vercel |
 | `.env.production.example` | Plantilla de variable de entorno para producción |
+| `components.json` | Configuración de Shadcn/ui |

@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
-import { getFcfEstimates, saveFcfEstimates, calculate } from '../api/client'
-import type { ValuationResponse } from '../types/api'
-import './FcfEstimatesForm.css'
+import { getFcfEstimates, saveFcfEstimates, calculate } from '@/api/client'
+import type { ValuationResponse } from '@/types/api'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface Props {
   ticker: string
@@ -34,7 +36,7 @@ export function FcfEstimatesForm({ ticker, onRecalculated }: Props) {
           setValues(prefilled)
         }
       })
-      .catch(() => { /* sin estimates guardados — inputs vacíos */ })
+      .catch(() => { /* sin estimates — inputs vacíos */ })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [ticker])
@@ -73,36 +75,39 @@ export function FcfEstimatesForm({ ticker, onRecalculated }: Props) {
   const hasValues = values.some(v => v.trim() !== '')
 
   return (
-    <div className="fcf-form">
-      <p className="fcf-hint">
+    <div className="space-y-4">
+      <p className="text-sm text-muted-foreground">
         Estimaciones de FCF de analistas (ej: de Koyfin) en unidades absolutas USD.
-        {loading && <span className="fcf-loading"> Cargando valores guardados...</span>}
+        {loading && <span className="text-muted-foreground/70 ml-1">Cargando valores guardados...</span>}
       </p>
-      <div className="fcf-inputs">
+
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {values.map((v, i) => (
-          <div key={i} className="fcf-input-group">
-            <label className="fcf-label">Año {i + 1}</label>
-            <input
-              className="fcf-input"
+          <div key={i} className="space-y-1">
+            <Label className="text-xs text-muted-foreground">Año {i + 1}</Label>
+            <Input
               type="text"
               inputMode="decimal"
-              placeholder="ej: 99,220,000,000"
+              placeholder="ej: 99,220M"
               value={v}
               onChange={e => handleChange(i, e.target.value)}
               disabled={saving || loading}
+              className="h-8 text-sm"
             />
           </div>
         ))}
       </div>
-      {error && <p className="fcf-error">{error}</p>}
-      {saved && <p className="fcf-success">Guardado y recalculado correctamente.</p>}
-      <button
-        className="btn-primary"
+
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      {saved && <p className="text-xs text-[var(--verdict-under)]">Guardado y recalculado correctamente.</p>}
+
+      <Button
+        size="sm"
         disabled={saving || loading || !hasValues}
         onClick={() => void handleSaveAndRecalculate()}
       >
         {saving ? 'Guardando...' : 'Guardar y recalcular'}
-      </button>
+      </Button>
     </div>
   )
 }

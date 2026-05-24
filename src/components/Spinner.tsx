@@ -1,4 +1,4 @@
-import './Spinner.css'
+import { Loader2 } from 'lucide-react'
 
 interface Props {
   text?: string
@@ -6,9 +6,9 @@ interface Props {
 
 export function Spinner({ text = 'Cargando...' }: Props) {
   return (
-    <div className="spinner-wrap">
-      <div className="spinner" aria-hidden="true" />
-      <span className="spinner-text">{text}</span>
+    <div className="flex flex-col items-center justify-center py-24 gap-3 text-muted-foreground">
+      <Loader2 size={28} className="animate-spin" />
+      <span className="text-sm">{text}</span>
     </div>
   )
 }
