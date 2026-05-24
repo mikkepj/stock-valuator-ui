@@ -152,9 +152,9 @@
 
 ### 6.1 — Actualizar tipos (`src/types/api.ts`)
 
-- [ ] Agregar tipo `MonteCarloResult` con campos: `p10`, `p25`, `p50`, `p75`, `p90`, `simulationCount` (todos `number`)
-- [ ] Extender `ValuationResponse` con `monteCarlo?: MonteCarloResult` y `qualityScore?: number`
-- [ ] Extender `BreakdownMap` (o el tipo que represente `breakdown`) con los campos opcionales:
+- [x] Agregar tipo `MonteCarloResult` con campos: `p10`, `p25`, `p50`, `p75`, `p90`, `simulationCount` (todos `number`)
+- [x] Extender `ValuationResponse` con `monteCarlo?: MonteCarloResult` y `qualityScore?: number`
+- [x] Extender `BreakdownMap` (o el tipo que represente `breakdown`) con los campos opcionales:
   - `terminalValueExitMultiple?: number`
   - `effectiveTaxRate?: number`
   - `creditSpread?: number`
@@ -169,13 +169,13 @@
 
 > Los nuevos campos van en la sección "DCF Breakdown" existente. No crear nueva sección.
 
-- [ ] Agregar fila **Tasa impositiva efectiva** (`effectiveTaxRate`) — formatear como porcentaje (ej. `14.3%`)
-- [ ] Agregar fila **Spread crediticio** (`creditSpread`) — formatear como porcentaje (ej. `0.63%`)
-- [ ] Agregar fila **Prima por tamaño** (`sizeRiskPremium`) — formatear como porcentaje (ej. `0.50%`)
-- [ ] Agregar fila **ROIC** (`roic`) — formatear como porcentaje (ej. `82.4%`)
-- [ ] Agregar fila **Crecimiento máximo sostenible** (`maxSustainableGrowth`) — formatear como porcentaje
-- [ ] Agregar fila **Terminal Value (Exit Multiple)** (`terminalValueExitMultiple`) — formatear como valor monetario con sufijo (ej. `$1.60T`)
-- [ ] Mostrar alerta/badge **"Crecimiento supera ROIC"** cuando `growthExceedsRoic === 1` — usar `Badge` de Shadcn con variante destructiva o `AlertTriangle` de lucide-react; ocultar completamente cuando sea 0
+- [x] Agregar fila **Tasa impositiva efectiva** (`effectiveTaxRate`) — formatear como porcentaje (ej. `14.3%`)
+- [x] Agregar fila **Spread crediticio** (`creditSpread`) — formatear como porcentaje (ej. `0.63%`)
+- [x] Agregar fila **Prima por tamaño** (`sizeRiskPremium`) — formatear como porcentaje (ej. `0.50%`)
+- [x] Agregar fila **ROIC** (`roic`) — formatear como porcentaje (ej. `82.4%`)
+- [x] Agregar fila **Crecimiento máximo sostenible** (`maxSustainableGrowth`) — formatear como porcentaje
+- [x] Agregar fila **Terminal Value (Exit Multiple)** (`terminalValueExitMultiple`) — formatear como valor monetario con sufijo (ej. `$1.60T`)
+- [x] Mostrar alerta/badge **"Crecimiento supera ROIC"** cuando `growthExceedsRoic === 1` — usar `Badge` de Shadcn con variante destructiva o `AlertTriangle` de lucide-react; ocultar completamente cuando sea 0
 
 ---
 
@@ -183,14 +183,14 @@
 
 > Nuevo componente en `src/components/QualityScoreBadge.tsx`. Mostrar en el header del `TickerDetailPage`, junto al `VerdictBadge`.
 
-- [ ] Crear `QualityScoreBadge.tsx` — recibe `score: number` (0–100)
-- [ ] Representación visual: número grande (ej. `90`) + label `/ 100` + texto de categoría:
+- [x] Crear `QualityScoreBadge.tsx` — recibe `score: number` (0–100)
+- [x] Representación visual: número grande (ej. `90`) + label `/ 100` + texto de categoría:
   - `80–100` → "Excelente" (verde `text-green-500`)
   - `60–79` → "Bueno" (azul `text-blue-500`)
   - `40–59` → "Moderado" (amarillo `text-yellow-500`)
   - `0–39` → "Débil" (rojo `text-red-500`)
-- [ ] Usar `Tooltip` de Shadcn con texto: `"Score de calidad del negocio: FCF Growth, Consistencia, ROIC vs WACC, Apalancamiento, Tendencia de márgenes"`
-- [ ] Renderizar condicionalmente en `TickerDetailPage` solo si `qualityScore != null`
+- [x] Usar `Tooltip` de Shadcn con texto: `"Score de calidad del negocio: FCF Growth, Consistencia, ROIC vs WACC, Apalancamiento, Tendencia de márgenes"`
+- [x] Renderizar condicionalmente en `TickerDetailPage` solo si `qualityScore != null`
 
 ---
 
@@ -198,21 +198,20 @@
 
 > Nuevo componente en `src/components/MonteCarloChart.tsx`. Nueva sección en `TickerDetailPage` debajo del Sensitivity Heatmap.
 
-- [ ] Crear `MonteCarloChart.tsx` — recibe `monteCarlo: MonteCarloResult` y `marketPrice: number`
-- [ ] Visualización: gráfico de barras horizontal (Recharts `BarChart`) mostrando los 5 percentiles como rango
-  - Alternativa más simple aceptable: tabla de 5 filas (P10 / P25 / P50 / P75 / P90) con barra de progreso CSS inline
-- [ ] Cada fila/barra coloreada según si el percentil está por encima o por debajo del precio de mercado (verde = oportunidad, rojo = sobrevaluado)
-- [ ] Incluir línea/indicador vertical del precio de mercado actual (`marketPrice`)
-- [ ] Mostrar `simulationCount` como subtítulo (ej. `"Basado en 1.000 simulaciones"`)
-- [ ] Renderizar condicionalmente en `TickerDetailPage` solo si `monteCarlo != null`
-- [ ] Usar context7 para la API de Recharts antes de implementar
+- [x] Crear `MonteCarloChart.tsx` — recibe `monteCarlo: MonteCarloResult` y `marketPrice: number`
+- [x] Visualización: gráfico de barras horizontal (Recharts `BarChart`) mostrando los 5 percentiles como rango
+- [x] Cada fila/barra coloreada según si el percentil está por encima o por debajo del precio de mercado (verde = oportunidad, rojo = sobrevaluado)
+- [x] Incluir línea/indicador vertical del precio de mercado actual (`marketPrice`)
+- [x] Mostrar `simulationCount` como subtítulo (ej. `"Basado en 1.000 simulaciones"`)
+- [x] Renderizar condicionalmente en `TickerDetailPage` solo si `monteCarlo != null`
+- [x] Usar context7 para la API de Recharts antes de implementar
 
 ---
 
 ### 6.5 — Polish y validación
 
-- [ ] Verificar que todos los nuevos campos se muestran con `--` o se omiten limpiamente cuando el valor es `null` / `undefined` (el backend puede no devolverlos para valoraciones antiguas)
-- [ ] Build TypeScript sin errores (`tsc --noEmit`)
+- [x] Verificar que todos los nuevos campos se omiten cuando son `null` / `undefined`
+- [x] Build TypeScript sin errores (`tsc --noEmit`)
 - [ ] Smoke test visual en dark y light mode con datos de AAPL (tiene todos los campos poblados)
 - [ ] Validar que la alerta `growthExceedsRoic` no aparece para AAPL (ROIC 82% >> crecimiento proyectado)
 
