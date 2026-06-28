@@ -1,4 +1,5 @@
-import './ErrorMessage.css'
+import { AlertTriangle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 interface Props {
   message: string
@@ -7,13 +8,15 @@ interface Props {
 
 export function ErrorMessage({ message, onRetry }: Props) {
   return (
-    <div className="error-box">
-      <span className="error-icon">⚠</span>
-      <p className="error-text">{message}</p>
+    <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
+      <div className="rounded-full bg-destructive/10 p-3">
+        <AlertTriangle size={24} className="text-destructive" />
+      </div>
+      <p className="text-sm text-muted-foreground max-w-sm">{message}</p>
       {onRetry && (
-        <button className="btn-action" onClick={onRetry}>
+        <Button variant="outline" size="sm" onClick={onRetry}>
           Reintentar
-        </button>
+        </Button>
       )}
     </div>
   )

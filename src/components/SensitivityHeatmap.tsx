@@ -1,16 +1,12 @@
-import './SensitivityHeatmap.css'
-
 interface Props {
   matrix: Record<string, Record<string, number>>
   basePrice: number
 }
 
-// Orden canónico de los ejes según el contrato del BE
 const WACC_ADJUSTMENTS = ['-1.00%', '-0.50%', '0.00%', '+0.50%', '+1.00%']
 const GROWTH_ADJUSTMENTS = ['+2.00%', '+1.00%', '0.00%', '-1.00%', '-2.00%']
 
 function interpolateColor(ratio: number): string {
-  // ratio 0 → rojo #ef4444, ratio 1 → verde #22c55e
   const r = Math.round(239 + (34 - 239) * ratio)
   const g = Math.round(68 + (197 - 68) * ratio)
   const b = Math.round(68 + (94 - 68) * ratio)
@@ -18,7 +14,6 @@ function interpolateColor(ratio: number): string {
 }
 
 export function SensitivityHeatmap({ matrix, basePrice }: Props) {
-  // Recopilar todos los valores para normalizar el gradiente
   const allValues: number[] = []
   for (const waccAdj of WACC_ADJUSTMENTS) {
     for (const gAdj of GROWTH_ADJUSTMENTS) {
@@ -40,47 +35,49 @@ export function SensitivityHeatmap({ matrix, basePrice }: Props) {
   }
 
   return (
-    <div className="heatmap-wrapper">
-      <table className="heatmap-table">
-        <thead>
-          <tr>
-            <th className="heatmap-axis-label">g \ WACC</th>
-            {WACC_ADJUSTMENTS.map(w => (
-              <th key={w} className="heatmap-col-header">{w}</th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {GROWTH_ADJUSTMENTS.map(gAdj => (
-            <tr key={gAdj}>
-              <td className="heatmap-row-header">{gAdj}</td>
-              {WACC_ADJUSTMENTS.map(wAdj => {
-                const { val, ratio, isBase } = getCell(wAdj, gAdj)
-                if (val === null) return <td key={wAdj} className="heatmap-cell">—</td>
-
-                const bg = interpolateColor(ratio)
-                const margin = ((val - basePrice) / basePrice) * 100
-                const textColor = ratio > 0.55 ? '#052e16' : ratio < 0.45 ? '#450a0a' : '#1c1917'
-
-                return (
-                  <td
-                    key={wAdj}
-                    className={`heatmap-cell${isBase ? ' heatmap-base' : ''}`}
-                    style={{ background: bg, color: textColor }}
-                    title={`IV: $${val.toFixed(2)} | Margen: ${margin.toFixed(1)}%`}
-                  >
-                    <span className="heatmap-iv">${val.toFixed(0)}</span>
-                    <span className="heatmap-margin">
-                      {margin >= 0 ? '+' : ''}{margin.toFixed(0)}%
-                    </span>
-                  </td>
-                )
-              })}
+    <div className="space-y-3">
+      <div className="overflow-x-auto">
+        <table className="w-full text-xs border-collapse">
+          <thead>
+            <tr>
+              <th className="text-left text-muted-foreground font-medium px-3 py-2 whitespace-nowrap">g \ WACC</th>
+              {WACC_ADJUSTMENTS.map(w => (
+                <th key={w} className="text-center text-muted-foreground font-medium px-3 py-2 whitespace-nowrap">{w}</th>
+              ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
-      <p className="heatmap-legend">
+          </thead>
+          <tbody>
+            {GROWTH_ADJUSTMENTS.map(gAdj => (
+              <tr key={gAdj}>
+                <td className="text-muted-foreground font-medium px-3 py-1.5 whitespace-nowrap">{gAdj}</td>
+                {WACC_ADJUSTMENTS.map(wAdj => {
+                  const { val, ratio, isBase } = getCell(wAdj, gAdj)
+                  if (val === null) return <td key={wAdj} className="text-center px-3 py-1.5">—</td>
+
+                  const bg = interpolateColor(ratio)
+                  const margin = ((val - basePrice) / basePrice) * 100
+                  const textColor = ratio > 0.55 ? '#052e16' : ratio < 0.45 ? '#450a0a' : '#1c1917'
+
+                  return (
+                    <td
+                      key={wAdj}
+                      className={`text-center px-3 py-1.5 rounded-sm ${isBase ? 'ring-2 ring-offset-1 ring-foreground/40' : ''}`}
+                      style={{ background: bg, color: textColor }}
+                      title={`IV: $${val.toFixed(2)} | Margen: ${margin.toFixed(1)}%`}
+                    >
+                      <div className="font-semibold tabular-nums">${val.toFixed(0)}</div>
+                      <div className="tabular-nums opacity-80">
+                        {margin >= 0 ? '+' : ''}{margin.toFixed(0)}%
+                      </div>
+                    </td>
+                  )
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-muted-foreground">
         Cada celda muestra el valor intrínseco estimado y el margen vs precio de mercado (${basePrice.toFixed(2)}).
         La celda <strong>0.00% / 0.00%</strong> es el escenario Base.
       </p>
