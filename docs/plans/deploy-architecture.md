@@ -1,8 +1,34 @@
 # Propuesta de Arquitectura de Deploy — Stock Valuator
 
-> Fecha: 2026-06-06
+> Fecha: 2026-06-06 (propuesta) · Desplegado: 2026-08-02
 > Alcance: FE (`stock-valuator-ui`) + BE (`stock-valuator`)
 > Contexto: proyecto personal, bajo tráfico, prioridad **costo $0** (al menos por ahora)
+
+---
+
+## ✅ ESTADO: DESPLEGADO Y FUNCIONANDO (Opción A)
+
+El despliegue está **completo, verificado y en producción** desde 2026-08-02:
+
+| Pieza | Plataforma | URL / detalle |
+|-------|-----------|---------------|
+| **FE** | Vercel | https://stock-valuator-ui.vercel.app |
+| **BE** | Render (Docker, Free, US East) | https://stock-valuator-dq39.onrender.com — `/actuator/health` → `UP` |
+| **DB** | Neon (Postgres 16, `sa-east-1`) | base `neondb`, 7 migraciones Flyway aplicadas |
+| **Refresco** | cron-job.org | `POST /api/v1/ingest/AAPL` sábados 05:55 (método POST en sección *Advanced*) |
+| **CORS** | — | `STOCKVALUATOR_CORS_ALLOWEDORIGINS=https://stock-valuator-ui.vercel.app` (verificado) |
+
+**Bugs encontrados durante el deploy y resueltos con TDD** (ver `LEARNINGS.md` en ambos repos):
+1. **BE — race condition en ingesta concurrente** → HTTP 500 `duplicate key company_ticker_key`. Fix: `CompanyUpsertService` con catch+reintento y `saveNew` en `REQUIRES_NEW` + self-injection `@Lazy` (`fix/concurrent-ingest-duplicate-key`).
+2. **BE — `NoResourceFoundException` devolvía 500** (sondeo `/` del health-check de Render) → ahora 404 (`fix/no-resource-found-returns-404`).
+3. **FE — error de tipos de Recharts 3** en `MonteCarloChart` rompía `tsc -b` y el build de Vercel → fix del `formatter` (commit `961c77c`).
+
+**Diferencias vs. el plan original:**
+- Neon quedó en `sa-east-1` (São Paulo), no US East. Funciona; latencia asumible para bajo tráfico.
+- Hubo que **quitar `channel_binding=require`** de la connection string de Neon (el driver JDBC no lo soporta); mantener solo `sslmode=require`.
+- Docker no estaba disponible en local → el `docker build` lo validó Render directamente.
+
+> El resto del documento es la propuesta y guía original que se siguió. Los pasos del punto 7 están todos completados (checklist al final marcado).
 
 ---
 
@@ -26,7 +52,7 @@
 |---------|---------|
 | Tipo | **Proceso JVM siempre vivo** (Spring Boot 3.3.7, Java 21) |
 | Build | Maven multi-módulo (3) → JAR ejecutable en `api-web` |
-| Base de datos | **PostgreSQL 16 obligatorio** — Flyway gestiona el schema (9 migraciones V1–V9), `ddl-auto: validate` |
+| Base de datos | **PostgreSQL 16 obligatorio** — Flyway gestiona el schema (7 migraciones: V1, V4–V9; V2 y V3 no existen), `ddl-auto: validate` |
 | Estado | Persistente: valuaciones, watchlist, FCF estimates, statements financieros |
 | Dependencias externas | **FMP API** (Financial Modeling Prep) — requiere `FMP_API_KEY` |
 | Cache | Caffeine en memoria (`maximumSize=500, expireAfterWrite=24h`) |
@@ -35,7 +61,7 @@
 | CORS | Configurable por `stockvaluator.cors.allowed-origins` (env-overridable) |
 | Memoria | JVM necesita **~200–300 MB de overhead** + heap. En 512 MB es ajustado pero viable para bajo tráfico |
 
-**Secrets necesarios en prod:** `DB_USERNAME`, `DB_PASSWORD`, `DB_URL` (o `SPRING_DATASOURCE_*`), `FMP_API_KEY`, y `STOCKVALUATOR_CORS_ALLOWED-ORIGINS` con la URL real del FE.
+**Secrets necesarios en prod:** `DB_USERNAME`, `DB_PASSWORD`, `SPRING_DATASOURCE_URL`, `FMP_API_KEY`, y `STOCKVALUATOR_CORS_ALLOWEDORIGINS` (sin guion — ver Paso 1.2) con la URL real del FE.
 
 **Puntos críticos para el deploy del BE:**
 
@@ -157,7 +183,7 @@ DB  → Neon (Postgres serverless free)
 1. **Scheduler semanal:** como Render duerme, configurar un **cron-ping externo gratuito** (p. ej. cron-job.org) que golpee un endpoint el sábado ~5:55 AM para despertar el servicio antes del refresco; o exponer un endpoint manual de refresco y dispararlo tú.
 2. **Memoria JVM:** añadir `JAVA_TOOL_OPTIONS=-XX:MaxRAMPercentage=75 -XX:+UseSerialGC` para vivir cómodo en 512 MB.
 3. **Cold start:** asumible para uso personal (la 1ª petición tras dormir tarda ~1–1.5 min). Si molesta, un ping cada 14 min lo mantiene despierto (consume horas-instancia, vigilar el límite de 750 h/mes).
-4. **CORS:** setear `STOCKVALUATOR_CORS_ALLOWED-ORIGINS=https://<tu-fe>.vercel.app`.
+4. **CORS:** setear `STOCKVALUATOR_CORS_ALLOWEDORIGINS=https://<tu-fe>.vercel.app` (sin guion — ver Paso 1.2).
 5. **FE:** setear `VITE_API_URL=https://<tu-be>.onrender.com/api/v1` en las env vars de build de Vercel.
 
 ### Si quieres $0 de verdad para siempre, sin sleep y con el scheduler garantizado → **Opción C (Oracle Always Free)**
@@ -172,15 +198,199 @@ Todo en un lugar, scheduler garantizado, cero ops. La transición desde A es tri
 
 ## 7. Pasos siguientes sugeridos (para Opción A)
 
-1. **Preparar el BE para cloud:**
-   - Verificar que `SPRING_DATASOURCE_URL/USERNAME/PASSWORD` se leen de env (hoy usa `DB_USERNAME/DB_PASSWORD` con defaults locales — añadir override de `url` por env).
-   - Externalizar `stockvaluator.cors.allowed-origins` por env var (ya soportado vía YAML, confirmar binding).
-   - Opcional: añadir un `Dockerfile` (hoy no existe) o usar el buildpack nativo de Render para Maven.
-2. **Crear DB en Neon**, copiar el connection string (incluye `?sslmode=require`).
-3. **Desplegar BE en Render** con build `./mvnw -pl api-web -am clean package -DskipTests` y start `java -jar api-web/target/*.jar`.
-4. **Configurar cron-ping externo** para el scheduler semanal.
-5. **Desplegar FE en Vercel** con `VITE_API_URL` y rewrite SPA.
-6. **Smoke test end-to-end** con AAPL.
+> **Orden recomendado para empezar mañana:** Paso 1 (código) → Paso 2 (Neon) → Paso 3 (Render) → Paso 4 (cron-ping) → Paso 5 (Vercel) → Paso 6 (smoke test).
+> Los pasos 1 y 2 pueden hacerse en paralelo. Tiempo estimado total: **media jornada** si no hay sorpresas.
+>
+> **Notas de verificación contra el código real del BE (`C:\workspaces\intellij\stock-valuator`):**
+> - El binding de CORS vive en `api-web/.../api/config/WebConfig.java` vía `@Value("${stockvaluator.cors.allowed-origins:...}")` — **ya funciona**, solo hay que pasar la env var con el nombre correcto (ver Paso 1.2, ojo al nombre sin guion).
+> - **No existe `mvnw`** en el repo → el build en Render necesita Maven disponible. La vía más robusta es un **Dockerfile multi-stage** (Paso 1.3), no el buildpack.
+> - `@EnableScheduling` está activo en `StockValuatorApplication`, pero **no hay ningún `@Scheduled` implementado** todavía: la propiedad `stockvaluator.scheduling.refresh-cron` del YAML no dispara nada. Por eso el refresco semanal se hace hoy con un **cron-ping externo al endpoint de ingestión** (Paso 4), no con el scheduler interno.
+
+---
+
+### Paso 1 — Preparar el BE para cloud (cambios de código y config)
+
+Trabajar en una rama `feature/cloud-ready` desde `develop` (git flow del proyecto).
+
+**1.1 — Externalizar la URL del datasource.**
+Hoy `api-web/src/main/resources/application.yml` tiene la `url` fija a `localhost`. Cambiar a que sea overridable por env, manteniendo el default local para desarrollo:
+
+```yaml
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/stockvaluator}
+    username: ${DB_USERNAME:sv_user}
+    password: ${DB_PASSWORD:sv_pass}
+```
+
+> Spring Boot ya reconoce `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME` y `SPRING_DATASOURCE_PASSWORD` como env vars estándar. Usar esos nombres en Render evita tener que tocar el YAML para username/password, pero dejar los `${...}` explícitos lo hace inequívoco.
+
+**1.2 — Confirmar el nombre de la env var de CORS (¡detalle crítico!).**
+`WebConfig.java` lee `stockvaluator.cors.allowed-origins`. Por el *relaxed binding* de Spring, la env var correspondiente es:
+
+```
+STOCKVALUATOR_CORS_ALLOWEDORIGINS
+```
+
+> ⚠️ **No** es `STOCKVALUATOR_CORS_ALLOWED-ORIGINS` (con guion) ni `..._ALLOWED_ORIGINS` (con guion bajo extra). Spring mapea `allowed-origins` → `ALLOWEDORIGINS`. Como el campo es `String[]`, el valor se separa por comas: `https://tu-fe.vercel.app`. No hace falta cambiar código aquí, solo setear bien la variable en Render (Paso 3).
+
+**1.3 — Añadir un `Dockerfile` en la raíz del BE** (no existe hoy; recomendado sobre el buildpack porque no hay `mvnw` y el proyecto es multi-módulo):
+
+```dockerfile
+# ---- build stage ----
+FROM maven:3.9-eclipse-temurin-21 AS build
+WORKDIR /app
+COPY pom.xml .
+COPY valuation-engine/pom.xml valuation-engine/
+COPY data-ingestion/pom.xml data-ingestion/
+COPY api-web/pom.xml api-web/
+RUN mvn -q -B dependency:go-offline
+COPY . .
+RUN mvn -q -B -pl api-web -am clean package -DskipTests
+
+# ---- run stage ----
+FROM eclipse-temurin:21-jre
+WORKDIR /app
+COPY --from=build /app/api-web/target/*.jar app.jar
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=75 -XX:+UseSerialGC"
+EXPOSE 8080
+ENTRYPOINT ["java", "-jar", "app.jar"]
+```
+
+> El stage de build copia primero los `pom.xml` para cachear dependencias (capa Docker reutilizable). `-pl api-web -am` compila api-web **y** los módulos de los que depende (`valuation-engine`, `data-ingestion`). `JAVA_TOOL_OPTIONS` mantiene la JVM dentro de los 512 MB de Render.
+
+**1.4 — Verificar local antes de subir:**
+
+```powershell
+# Compila el JAR como lo hará Render
+mvn -pl api-web -am clean package -DskipTests
+# Prueba el Docker build localmente (si tienes Docker)
+docker build -t stock-valuator-be .
+```
+
+**1.5 — Commit + merge a `develop`** (`--no-ff`, según git flow). Render desplegará desde la rama que elijas (típicamente `main` o `develop`).
+
+---
+
+### Paso 2 — Crear la base de datos en Neon
+
+1. Registrarse en [neon.tech](https://neon.tech) (login con GitHub, sin tarjeta).
+2. **Create project** → nombre `stock-valuator`, región la más cercana a la región de Render (p. ej. ambos en US East) para minimizar latencia.
+3. Neon crea un Postgres 16 con una rama `main` y una base `neondb` por defecto. Sirve tal cual.
+4. En el dashboard, **Connection string** → copiar la cadena en formato **JDBC** o adaptarla. Neon da algo como:
+   ```
+   postgresql://user:pass@ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+   Para Spring/JDBC convertir a:
+   ```
+   jdbc:postgresql://ep-xxx.us-east-2.aws.neon.tech/neondb?sslmode=require
+   ```
+   y separar el usuario y password (van en `DB_USERNAME` / `DB_PASSWORD`).
+   > ⚠️ **Quitar `channel_binding=require`** si Neon lo incluye en la cadena — el driver JDBC de PostgreSQL **no lo soporta** y el arranque falla. Mantener solo `sslmode=require`. Usar el endpoint `-pooler` (PgBouncer) va bien con Hikari.
+5. **No** hace falta crear tablas: **Flyway corre las 7 migraciones (V1, V4–V9) automáticamente** al arrancar el BE (`baseline-on-migrate: true`). Verificar luego que la tabla `flyway_schema_history` se haya poblado. Nota: V2 y V3 no existen en el repo — la numeración con saltos es válida en Flyway.
+
+> **Nota sobre `ddl-auto: validate`:** como Flyway crea el schema antes de que Hibernate valide, el orden de arranque ya está bien resuelto en el proyecto. No cambiar a `update`.
+
+---
+
+### Paso 3 — Desplegar el BE en Render
+
+1. Registrarse en [render.com](https://render.com) (sin tarjeta para free).
+2. **New → Web Service** → conectar el repo `stock-valuator` de GitHub.
+3. Configuración:
+   - **Environment:** `Docker` (usa el `Dockerfile` del Paso 1.3).
+   - **Branch:** la que despliegas (`main` o `develop`).
+   - **Instance type:** `Free`.
+   - **Health check path:** `/actuator/health` (ya expuesto; ver `management.endpoints` en el YAML).
+4. **Environment variables** (en *Settings → Environment*):
+
+   | Variable | Valor |
+   |----------|-------|
+   | `SPRING_DATASOURCE_URL` | `jdbc:postgresql://ep-xxx...neon.tech/neondb?sslmode=require` |
+   | `DB_USERNAME` | usuario de Neon |
+   | `DB_PASSWORD` | password de Neon |
+   | `FMP_API_KEY` | tu API key de Financial Modeling Prep |
+   | `STOCKVALUATOR_CORS_ALLOWEDORIGINS` | `https://<tu-fe>.vercel.app` (rellenar tras Paso 5; al inicio puedes poner un placeholder) |
+
+5. **Deploy.** El primer build tarda varios minutos (descarga dependencias Maven). Seguir los logs.
+6. **Verificar arranque:**
+   ```
+   https://<tu-be>.onrender.com/actuator/health   → {"status":"UP"}
+   https://<tu-be>.onrender.com/api/v1/info
+   ```
+   Revisar en los logs que Flyway aplicó las 7 migraciones (V1, V4–V9) sin error y que Hibernate validó el schema.
+
+> **Memoria:** si ves `OutOfMemoryError` en arranque, confirmar que `JAVA_TOOL_OPTIONS` del Dockerfile se aplicó (aparece en los primeros logs de la JVM). Si persiste, bajar `MaxRAMPercentage` a `70`.
+
+---
+
+### Paso 4 — Configurar el cron-ping externo (refresco de datos)
+
+Como (a) Render duerme tras 15 min y (b) no hay `@Scheduled` implementado, el refresco semanal se hace disparando el endpoint de ingestión desde un cron externo gratuito.
+
+1. Crear cuenta en [cron-job.org](https://cron-job.org) (gratis).
+2. **Crear un cronjob** que haga:
+   ```
+   POST https://<tu-be>.onrender.com/api/v1/ingest/AAPL
+   ```
+   - Repetir por cada ticker que quieras refrescar (o, mejor, **implementar más adelante** un endpoint `POST /api/v1/ingest/refresh-all` que recorra la watchlist; hoy `IngestionController` solo acepta un ticker).
+   - **Schedule:** sábado a las **05:55 AM** (5 min antes de la hora histórica `0 0 6 * * SAT`), para dar margen al cold-start del wake-up.
+   - **Método POST:** se configura en la sección **Advanced** del cronjob (no en la vista Common) → campo *Request method*. Con GET el endpoint devuelve 405.
+3. **(Opcional) Keep-alive** para evitar cold starts en horario de uso: un segundo cronjob `GET /actuator/health` cada **14 minutos**.
+   > ⚠️ Vigilar el límite de **750 horas-instancia/mes** de Render. Un keep-alive 24/7 consume ~720 h/mes — cabe justo, pero no dejes dos servicios free corriendo. Si solo te importa el refresco semanal, **no** pongas keep-alive y deja que duerma.
+
+> **Nota:** cron-job.org (plan free) solo captura los primeros KB de la respuesta. Un job marcado "Fallido (salida demasiado grande)" puede en realidad ser un HTTP 500 con respuesta grande — diagnosticar golpeando el endpoint directamente + logs del BE, no fiarse del mensaje.
+
+> **Mejora futura (no bloqueante):** implementar un `@Scheduled(cron = "${stockvaluator.scheduling.refresh-cron}")` real en el BE que recorra la watchlist. Pero eso **solo sirve si el proceso no duerme** — con Render free seguirías necesitando el ping para despertarlo. Por eso el cron externo es la solución correcta para esta arquitectura.
+
+---
+
+### Paso 5 — Desplegar el FE en Vercel
+
+1. Registrarse en [vercel.com](https://vercel.com) con GitHub.
+2. **Add New → Project** → importar `stock-valuator-ui`. Vercel autodetecta Vite (build `vite build`, output `dist`).
+3. **Environment Variables** → añadir:
+   ```
+   VITE_API_URL = https://<tu-be>.onrender.com/api/v1
+   ```
+   > Es build-time: si la cambias luego, hay que **redeploy**. Confirmar que `src/api/client.ts` use `import.meta.env.VITE_API_URL` como `baseURL` en producción.
+4. **Rewrite SPA** — crear `vercel.json` en la raíz del FE para que las rutas de `react-router` no den 404 en refresh:
+   ```json
+   {
+     "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+   }
+   ```
+5. **Deploy.** Vercel da una URL `https://<tu-fe>.vercel.app`.
+6. **Cerrar el círculo de CORS:** volver a Render y poner esa URL exacta en `STOCKVALUATOR_CORS_ALLOWEDORIGINS`; Render redeploya el BE.
+
+> **Ojo (build de Vercel):** Vercel corre `npm run build` = `tsc -b && vite build`. Un error de tipos de TypeScript **rompe el deploy**. En este proyecto el `formatter` del `Tooltip` de Recharts 3 en `MonteCarloChart` tipaba `value:number` cuando Recharts pasa `ValueType|undefined` → hubo que corregirlo. Verificar `npm run build` localmente antes de importar en Vercel.
+
+---
+
+### Paso 6 — Smoke test end-to-end
+
+1. Abrir `https://<tu-fe>.vercel.app`. La primera carga puede tardar ~1–1.5 min si el BE estaba dormido (cold start) — es esperado.
+2. **Agregar `AAPL`** a la watchlist (ejercita `POST /watchlist/AAPL` → ingestión + valuación).
+3. Verificar en el detalle: escenarios, breakdown DCF, heatmap de sensibilidad, y los campos de Fase 6 (QualityScore, MonteCarlo) si el BE los devuelve.
+4. **Recalcular DCF** con un beta override → confirma el `POST /valuations/AAPL/calculate`.
+5. Abrir DevTools → Network: confirmar que **no hay errores CORS** y que las llamadas van a `onrender.com`.
+6. **Verificar persistencia:** recargar la página; los datos deben seguir ahí (confirma que Neon persiste y Flyway no recreó nada).
+7. **(Día siguiente)** confirmar que el cron-job del sábado se ejecutó: revisar el historial en cron-job.org y los logs de ingestión en Render.
+
+#### Checklist final — ✅ COMPLETADO (2026-08-02)
+
+- [x] BE responde `UP` en `/actuator/health`
+- [x] Flyway aplicó las 7 migraciones (V1, V4–V9) (tabla `flyway_schema_history` poblada en Neon)
+- [x] FE carga y consume el BE sin errores CORS
+- [x] Flujo completo AAPL: agregar → valuar → recalcular
+- [x] Datos persisten tras recargar
+- [x] Cron-ping de refresco creado y verificado
+- [x] `VITE_API_URL` y `STOCKVALUATOR_CORS_ALLOWEDORIGINS` apuntan a las URLs reales de prod
+
+**Deuda técnica pendiente (no bloqueante):**
+- `FinancialDataService.upsertStatement()` tiene el mismo patrón race-condition que se arregló para `company`. Latente, no ha reventado.
+- Rotar `DB_PASSWORD` (Neon) y `FMP_API_KEY` si el proyecto crece (quedaron expuestas durante la configuración).
+- Implementar `POST /api/v1/ingest/refresh-all` que recorra la watchlist (hoy el cron ingesta ticker por ticker).
 
 ---
 
