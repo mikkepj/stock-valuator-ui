@@ -64,7 +64,7 @@ export function MonteCarloChart({ monteCarlo, marketPrice }: MonteCarloChartProp
               axisLine={false}
             />
             <Tooltip
-              formatter={(value: number) => [`$${fmt(value)}`, 'Valor intrínseco']}
+              formatter={(value) => [`$${fmt(Number(value))}`, 'Valor intrínseco']}
               cursor={{ fill: 'var(--muted)', opacity: 0.3 }}
             />
             <ReferenceLine
